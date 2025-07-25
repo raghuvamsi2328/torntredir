@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Magnet Link Redirector - Test Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .test-link {
+            display: block;
+            margin: 10px 0;
+            padding: 10px;
+            background: #f0f0f0;
+            border-radius: 5px;
+            text-decoration: none;
+            color: #333;
+        }
+        .test-link:hover {
+            background: #e0e0e0;
+        }
+        .info {
+            background: #e6f3ff;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Magnet Link Redirector - Test Page</h1>
+    
+    <div class="info">
+        <strong>How to test:</strong><br>
+        Click on any of the test links below. The behavior will depend on your device:
+        <ul>
+            <li><strong>iPhone/iPad/macOS:</strong> Will redirect to WebTorrent web player</li>
+            <li><strong>Windows/Linux/Android:</strong> Will try to open your default torrent client</li>
+        </ul>
+    </div>
+
+    <h2>Test Links:</h2>
+    
+    <h3>1. Test with Info Hash Only:</h3>
+    <a href="index.html#1234567890abcdef1234567890abcdef12345678" class="test-link">
+        Test Info Hash: 1234567890abcdef1234567890abcdef12345678
+    </a>
+    
+    <h3>2. Test with Full Magnet Link:</h3>
+    <a href="index.html#magnet:?xt=urn:btih:1234567890abcdef1234567890abcdef12345678&dn=test" class="test-link">
+        Test Full Magnet Link
+    </a>
+    
+    <h3>3. Test with Real Torrent (Ubuntu ISO):</h3>
+    <a href="index.html#2257c0b3da3c1e7e75d4b2fcb547e78cb6b0e4bc" class="test-link">
+        Ubuntu 22.04.3 LTS (Real torrent for testing)
+    </a>
+    
+    <h3>4. Test with Slashes (to check triple slash fix):</h3>
+    <a href="index.html#///1234567890abcdef1234567890abcdef12345678" class="test-link">
+        Test with Leading Slashes: ///1234567890abcdef1234567890abcdef12345678
+    </a>
+
+    <h2>Manual Testing:</h2>
+    <p>You can also manually test by opening <code>index.html</code> and adding hash values to the URL:</p>
+    <ul>
+        <li><code>index.html#1234567890abcdef1234567890abcdef12345678</code></li>
+        <li><code>index.html#magnet:?xt=urn:btih:1234567890abcdef1234567890abcdef12345678</code></li>
+    </ul>
+
+    <h2>Debug Information:</h2>
+    <div id="debug-info">
+        <p><strong>Your OS:</strong> <span id="detected-os"></span></p>
+        <p><strong>User Agent:</strong> <span id="user-agent"></span></p>
+    </div>
+
+    <script>
+        // Debug information
+        function detectOS() {
+            var userAgent = navigator.userAgent || navigator.vendor || window.opera;
+            
+            if (/iPad|iPhone|iPod/.test(userAgent) && !window.MSStream) {
+                return 'iOS';
+            }
+            
+            if (/Mac|Macintosh/.test(userAgent)) {
+                return 'macOS';
+            }
+            
+            return 'other';
+        }
+
+        document.getElementById('detected-os').textContent = detectOS();
+        document.getElementById('user-agent').textContent = navigator.userAgent;
+    </script>
+</body>
+</html>

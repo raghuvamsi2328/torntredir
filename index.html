@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>magnet2url</title>
+    <script>
+        function detectOS() {
+            var userAgent = navigator.userAgent || navigator.vendor || window.opera;
+            
+            // iOS detection
+            if (/iPad|iPhone|iPod/.test(userAgent) && !window.MSStream) {
+                return 'iOS';
+            }
+            
+            // macOS detection
+            if (/Mac|Macintosh/.test(userAgent)) {
+                return 'macOS';
+            }
+            
+            return 'other';
+        }
+
+        function redirectToWebTorrent(magnetLink) {
+            // Use WebTorrent.io for iOS and macOS
+            var webTorrentUrl = "https://webtorrent.io/desktop/#" + encodeURIComponent(magnetLink);
+            window.location.href = webTorrentUrl;
+        }
+
+        function magnetRedirect() {
+            var messageElement = document.getElementById("message")
+            var hashValue = window.location.hash.substring(1) // Fixed deprecated substr
+            
+            if (hashValue) {
+                var magnetLink;
+                
+                if (hashValue.startsWith("magnet:?xt=urn:btih:")) {
+                    magnetLink = hashValue;
+                }
+                else {
+                    // Clean the hash value to avoid triple slashes
+                    var cleanHash = hashValue.replace(/^\/+/, ''); // Remove leading slashes
+                    magnetLink = "magnet:?xt=urn:btih:" + cleanHash;
+                    
+                    if (magnetLink.includes("#tr") || magnetLink.includes("%23")) {
+                        magnetLink = magnetLink.split("#tr")[0];
+                        magnetLink = magnetLink.split("%23")[0];
+                        magnetLink = addTrackerServerList(magnetLink);
+                    }
+                }
+                
+                var os = detectOS();
+                if (os === 'iOS' || os === 'macOS') {
+                    redirectToWebTorrent(magnetLink);
+                } else {
+                    window.location.href = magnetLink;
+                }
+                
+                // Update the redirect link
+                var redirectLink = document.getElementById("redirectLink");
+                if (redirectLink) {
+                    redirectLink.href = magnetLink;
+                    redirectLink.onclick = function(e) {
+                        e.preventDefault();
+                        if (os === 'iOS' || os === 'macOS') {
+                            redirectToWebTorrent(magnetLink);
+                        } else {
+                            window.location.href = magnetLink;
+                        }
+                    };
+                }
+            }
+            else {
+                messageElement.innerHTML = "For redirect to the default torrent client, pass the info hash or magnet link in the address bar after the # symbol"
+            }
+        }
+        function addTrackerServerList(infoHash) {
+            var trackers = [
+                // Retracker
+                "http://retracker.local/announce",
+                // Kinozal
+                "http://tr0.torrent4me.com/ann?uk=kCm7WcIM00",
+                "http://tr1.torrent4me.com/ann?uk=kCm7WcIM00",
+                "http://tr2.torrent4me.com/ann?uk=kCm7WcIM00",
+                "http://tr3.torrent4me.com/ann?uk=kCm7WcIM00",
+                "http://tr4.torrent4me.com/ann?uk=kCm7WcIM00",
+                "http://tr5.torrent4me.com/ann?uk=kCm7WcIM00",
+                "http://tr0.tor4me.info/ann?uk=kCm7WcIM00",
+                "http://tr1.tor4me.info/ann?uk=kCm7WcIM00",
+                "http://tr2.tor4me.info/ann?uk=kCm7WcIM00",
+                "http://tr3.tor4me.info/ann?uk=kCm7WcIM00",
+                "http://tr4.tor4me.info/ann?uk=kCm7WcIM00",
+                "http://tr5.tor4me.info/ann?uk=kCm7WcIM00",
+                "http://tr0.tor2me.info/ann?uk=kCm7WcIM00",
+                "http://tr1.tor2me.info/ann?uk=kCm7WcIM00",
+                "http://tr2.tor2me.info/ann?uk=kCm7WcIM00",
+                "http://tr3.tor2me.info/ann?uk=kCm7WcIM00",
+                "http://tr4.tor2me.info/ann?uk=kCm7WcIM00",
+                "http://tr5.tor2me.info/ann?uk=kCm7WcIM00",
+                // RuTracker
+                "http://bt.t-ru.org/ann",
+                "http://bt2.t-ru.org/ann",
+                "http://bt3.t-ru.org/ann",
+                "http://bt4.t-ru.org/ann",
+                // NoNameClub
+                "http://bt01.nnm-club.info:2710/announce",
+                "http://bt02.nnm-club.info:2710/announce",
+                "http://bt01.nnm-club.cc:2710/announce",
+                "http://bt02.nnm-club.cc:2710/announce",
+                // RuTor
+                "udp://opentor.net:6969",
+                "udp://open.stealth.si:80/announce",
+                "udp://exodus.desync.com:6969/announce",
+                "http://tracker.grepler.com:6969/announce",
+                "udp://tracker.dler.com:6969/announce",
+                "udp://tracker.bitsearch.to:1337/announce",
+                "http://h1.trakx.nibba.trade:80/announce",
+                "http://h2.trakx.nibba.trade:80/announce",
+                "http://h3.trakx.nibba.trade:80/announce",
+                "http://h4.trakx.nibba.trade:80/announce",
+                "http://h5.trakx.nibba.trade:80/announce",
+                // WebTorrent
+                "wss://tracker.openwebtorrent.com",
+                "wss://tracker.btorrent.xyz",
+                "udp://tracker.leechers-paradise.org:6969",
+                "udp://tracker.coppersurfer.tk:6969",
+                "udp://tracker.opentrackr.org:1337",
+                "udp://tracker.empire-js.us:1337",
+                "udp://explodie.org:6969"
+            ]
+            for (var i = 0; i < trackers.length; i++) {
+                infoHash += "&tr=" + encodeURIComponent(trackers[i])
+            }
+            return infoHash
+        }
+        window.onload = function() {
+            magnetRedirect()
+        }
+        window.onhashchange = function() {
+            magnetRedirect()
+        }
+    </script>
+</head>
+<body>
+    <div id="message">
+        <p>If you were not automatically redirected, <a id="redirectLink" href="#">click here</a>.</p>
+        <p><small>iOS/macOS users will be redirected to WebTorrent player. Other platforms will use the default torrent client.</small></p>
+    </div>
+</body>
+</html>
