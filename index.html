@@ -19,10 +19,10 @@
             return 'other';
         }
 
-        function redirectToWebTorrent(magnetLink) {
-            // Use WebTorrent.io for iOS and macOS
-            var webTorrentUrl = "https://webtorrent.io/desktop/#" + encodeURIComponent(magnetLink);
-            window.location.href = webTorrentUrl;
+        function redirectToInstantIO(magnetLink) {
+            // Use instant.io for all platforms
+            var instantIOUrl = "https://instant.io/#" + encodeURIComponent(magnetLink);
+            window.location.href = instantIOUrl;
         }
 
         function magnetRedirect() {
@@ -48,11 +48,17 @@
                 }
                 
                 var os = detectOS();
+                // Use instant.io for all platforms now
+                redirectToInstantIO(magnetLink);
+                
+                // Commented out OS-specific logic - keeping for future use
+                /*
                 if (os === 'iOS' || os === 'macOS') {
-                    redirectToWebTorrent(magnetLink);
+                    redirectToInstantIO(magnetLink);
                 } else {
                     window.location.href = magnetLink;
                 }
+                */
                 
                 // Update the redirect link
                 var redirectLink = document.getElementById("redirectLink");
@@ -60,11 +66,17 @@
                     redirectLink.href = magnetLink;
                     redirectLink.onclick = function(e) {
                         e.preventDefault();
+                        // Use instant.io for all platforms now
+                        redirectToInstantIO(magnetLink);
+                        
+                        // Commented out OS-specific logic - keeping for future use
+                        /*
                         if (os === 'iOS' || os === 'macOS') {
-                            redirectToWebTorrent(magnetLink);
+                            redirectToInstantIO(magnetLink);
                         } else {
                             window.location.href = magnetLink;
                         }
+                        */
                     };
                 }
             }
@@ -142,7 +154,7 @@
 <body>
     <div id="message">
         <p>If you were not automatically redirected, <a id="redirectLink" href="#">click here</a>.</p>
-        <p><small>iOS/macOS users will be redirected to WebTorrent player. Other platforms will use the default torrent client.</small></p>
+        <p><small>All users will be redirected to instant.io web torrent player.</small></p>
     </div>
 </body>
 </html>

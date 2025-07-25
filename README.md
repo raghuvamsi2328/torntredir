@@ -5,9 +5,7 @@ A simple web application that redirects magnet links based on the user's operati
 ## Features
 
 - **Smart OS Detection**: Automatically detects iOS, macOS, and other platforms
-- **Cross-Platform Support**: 
-  - iOS/macOS users → Redirected to WebTorrent web player
-  - Windows/Linux/Android → Opens default torrent application
+- **Universal Web Player**: All users are redirected to instant.io web torrent player
 - **Flexible Input**: Accepts both info hashes and full magnet links
 - **Tracker Integration**: Automatically adds popular tracker servers
 - **URL Hash Support**: Works with hash-based URLs for easy sharing
@@ -33,9 +31,7 @@ https://yourusername.github.io/torntredir/#magnet:?xt=urn:btih:1234567890abcdef1
 1. The application reads the hash value from the URL
 2. Detects the user's operating system
 3. Formats the magnet link with additional trackers
-4. Redirects appropriately:
-   - **iOS/macOS**: Opens WebTorrent.io web player
-   - **Other platforms**: Opens default torrent client
+4. Redirects to instant.io web torrent player for all platforms
 
 ## Files
 
