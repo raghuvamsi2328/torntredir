@@ -35,7 +35,12 @@
     
     <div class="info">
         <strong>How to test:</strong><br>
-        Click on any of the test links below. All devices will be redirected to instant.io web torrent player.
+        Click on any of the test links below. You'll get a player selection modal with options based on your OS:
+        <ul>
+            <li><strong>Android:</strong> Web players + Default torrent app option</li>
+            <li><strong>iOS:</strong> Web players only</li>
+            <li><strong>Other platforms:</strong> Web players available</li>
+        </ul>
     </div>
 
     <h2>Test Links:</h2>
@@ -58,6 +63,16 @@
     <h3>4. Test with Slashes (to check triple slash fix):</h3>
     <a href="index.html#///1234567890abcdef1234567890abcdef12345678" class="test-link">
         Test with Leading Slashes: ///1234567890abcdef1234567890abcdef12345678
+    </a>
+
+    <h3>5. Test with Force Selection:</h3>
+    <a href="index.html?select=true#1234567890abcdef1234567890abcdef12345678" class="test-link">
+        Test Force Player Selection: 1234567890abcdef1234567890abcdef12345678
+    </a>
+    
+    <h3>6. Test Android Default App (if on Android):</h3>
+    <a href="index.html#2257c0b3da3c1e7e75d4b2fcb547e78cb6b0e4bc" class="test-link">
+        Test Android Default Option (Select "Default App" if available)
     </a>
 
     <h2>Manual Testing:</h2>

@@ -16,13 +16,171 @@
                 return 'macOS';
             }
             
+            // Android detection
+            if (/android/i.test(userAgent)) {
+                return 'Android';
+            }
+            
+            // Windows detection
+            if (/windows|win32|win64/i.test(userAgent)) {
+                return 'Windows';
+            }
+            
             return 'other';
+        }
+
+        function getAvailablePlayers(os) {
+            var players = {
+                'instant': {
+                    name: 'Instant.io',
+                    url: 'https://instant.io/#',
+                    description: 'Stream in browser instantly',
+                    supported: ['all']
+                },
+                'webtorrent': {
+                    name: 'WebTorrent',
+                    url: 'https://webtorrent.io/desktop/#',
+                    description: 'Full-featured web torrent client',
+                    supported: ['all']
+                },
+                'bitport': {
+                    name: 'Bitport.io',
+                    url: 'https://bitport.io/welcome?magnet=',
+                    description: 'Cloud torrent downloader',
+                    supported: ['all']
+                },
+                'seedr': {
+                    name: 'Seedr.cc',
+                    url: 'https://www.seedr.cc/?magnet=',
+                    description: 'Cloud storage torrent service',
+                    supported: ['all']
+                }
+            };
+
+            // Add native option for Android
+            if (os === 'Android') {
+                players['native'] = {
+                    name: 'Default App',
+                    url: '',
+                    description: 'Open with default torrent app',
+                    supported: ['Android']
+                };
+            }
+
+            return players;
+        }
+
+        function redirectToPlayer(magnetLink, player, os) {
+            var players = getAvailablePlayers(os);
+            
+            if (player === 'native' && os === 'Android') {
+                // Direct magnet link for Android default app
+                window.location.href = magnetLink;
+                return;
+            }
+            
+            if (players[player]) {
+                var url = players[player].url + encodeURIComponent(magnetLink);
+                window.location.href = url;
+            } else {
+                // Fallback to instant.io
+                redirectToInstantIO(magnetLink);
+            }
         }
 
         function redirectToInstantIO(magnetLink) {
             // Use instant.io for all platforms
             var instantIOUrl = "https://instant.io/#" + encodeURIComponent(magnetLink);
             window.location.href = instantIOUrl;
+        }
+
+        function showPlayerSelection(magnetLink, os) {
+            var players = getAvailablePlayers(os);
+            var modalHTML = `
+                <div id="playerModal" style="
+                    position: fixed; 
+                    top: 0; 
+                    left: 0; 
+                    width: 100%; 
+                    height: 100%; 
+                    background: rgba(0,0,0,0.8); 
+                    z-index: 1000;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-family: Arial, sans-serif;
+                ">
+                    <div style="
+                        background: white; 
+                        padding: 30px; 
+                        border-radius: 10px; 
+                        max-width: 500px; 
+                        width: 90%;
+                        max-height: 80vh;
+                        overflow-y: auto;
+                    ">
+                        <h2 style="margin-top: 0; color: #333;">Choose Torrent Player</h2>
+                        <p style="color: #666; margin-bottom: 20px;">Detected OS: <strong>${os}</strong></p>
+                        <div id="playerOptions">
+            `;
+
+            Object.keys(players).forEach(function(key) {
+                var player = players[key];
+                modalHTML += `
+                    <div onclick="selectPlayer('${key}', '${magnetLink}', '${os}')" style="
+                        border: 2px solid #ddd;
+                        border-radius: 8px;
+                        padding: 15px;
+                        margin: 10px 0;
+                        cursor: pointer;
+                        transition: all 0.3s ease;
+                        background: #f9f9f9;
+                    " onmouseover="this.style.borderColor='#007cba'; this.style.background='#f0f8ff';" 
+                       onmouseout="this.style.borderColor='#ddd'; this.style.background='#f9f9f9';">
+                        <h3 style="margin: 0 0 5px 0; color: #333;">${player.name}</h3>
+                        <p style="margin: 0; color: #666; font-size: 14px;">${player.description}</p>
+                    </div>
+                `;
+            });
+
+            modalHTML += `
+                        </div>
+                        <div style="margin-top: 20px; text-align: center;">
+                            <button onclick="closePlayerModal()" style="
+                                background: #666;
+                                color: white;
+                                border: none;
+                                padding: 10px 20px;
+                                border-radius: 5px;
+                                cursor: pointer;
+                                font-size: 16px;
+                            ">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+        }
+
+        function selectPlayer(player, magnetLink, os) {
+            closePlayerModal();
+            redirectToPlayer(magnetLink, player, os);
+        }
+
+        function closePlayerModal() {
+            var modal = document.getElementById('playerModal');
+            if (modal) {
+                modal.remove();
+            }
+        }
+
+        function getPreferredPlayer() {
+            return localStorage.getItem('preferredPlayer') || 'ask';
+        }
+
+        function setPreferredPlayer(player) {
+            localStorage.setItem('preferredPlayer', player);
         }
 
         function magnetRedirect() {
@@ -48,17 +206,19 @@
                 }
                 
                 var os = detectOS();
-                // Use instant.io for all platforms now
-                redirectToInstantIO(magnetLink);
+                var preferredPlayer = getPreferredPlayer();
                 
-                // Commented out OS-specific logic - keeping for future use
-                /*
-                if (os === 'iOS' || os === 'macOS') {
-                    redirectToInstantIO(magnetLink);
+                // Check for URL parameter to force player selection
+                var urlParams = new URLSearchParams(window.location.search);
+                var forceSelect = urlParams.get('select') === 'true';
+                
+                if (preferredPlayer === 'ask' || forceSelect) {
+                    // Show player selection modal
+                    showPlayerSelection(magnetLink, os);
                 } else {
-                    window.location.href = magnetLink;
+                    // Use preferred player
+                    redirectToPlayer(magnetLink, preferredPlayer, os);
                 }
-                */
                 
                 // Update the redirect link
                 var redirectLink = document.getElementById("redirectLink");
@@ -66,22 +226,51 @@
                     redirectLink.href = magnetLink;
                     redirectLink.onclick = function(e) {
                         e.preventDefault();
-                        // Use instant.io for all platforms now
-                        redirectToInstantIO(magnetLink);
-                        
-                        // Commented out OS-specific logic - keeping for future use
-                        /*
-                        if (os === 'iOS' || os === 'macOS') {
-                            redirectToInstantIO(magnetLink);
-                        } else {
-                            window.location.href = magnetLink;
-                        }
-                        */
+                        showPlayerSelection(magnetLink, os);
                     };
                 }
+                
+                // Update message with OS-specific info
+                updateMessageForOS(os);
             }
             else {
-                messageElement.innerHTML = "For redirect to the default torrent client, pass the info hash or magnet link in the address bar after the # symbol"
+                messageElement.innerHTML = `
+                    <p>For redirect to torrent players, pass the info hash or magnet link in the address bar after the # symbol</p>
+                    <p><small>Examples:</small></p>
+                    <ul style="text-align: left; display: inline-block;">
+                        <li><code>?select=true#[hash]</code> - Force player selection</li>
+                        <li><code>#magnet:?xt=urn:btih:[hash]</code> - Full magnet link</li>
+                        <li><code>#[hash]</code> - Info hash only</li>
+                    </ul>
+                `;
+            }
+        }
+        
+        function updateMessageForOS(os) {
+            var messageElement = document.getElementById("message");
+            var osSpecificMessage = "";
+            
+            switch(os) {
+                case 'Android':
+                    osSpecificMessage = "Android detected - You can choose web players or your default torrent app.";
+                    break;
+                case 'iOS':
+                    osSpecificMessage = "iOS detected - Web players recommended (no native torrent apps).";
+                    break;
+                case 'Windows':
+                    osSpecificMessage = "Windows detected - Web players available.";
+                    break;
+                case 'macOS':
+                    osSpecificMessage = "macOS detected - Web players available.";
+                    break;
+                default:
+                    osSpecificMessage = "Multiple torrent players available.";
+            }
+            
+            var currentContent = messageElement.innerHTML;
+            if (!currentContent.includes(osSpecificMessage)) {
+                messageElement.innerHTML = currentContent + 
+                    `<p><small>${osSpecificMessage}</small></p>`;
             }
         }
         function addTrackerServerList(infoHash) {
@@ -153,8 +342,71 @@
 </head>
 <body>
     <div id="message">
-        <p>If you were not automatically redirected, <a id="redirectLink" href="#">click here</a>.</p>
-        <p><small>All users will be redirected to instant.io web torrent player.</small></p>
+        <p>If you were not automatically redirected, <a id="redirectLink" href="#">click here to choose a player</a>.</p>
+        <p><small>Advanced player selection with OS-specific options available.</small></p>
     </div>
+    
+    <div id="settings" style="margin-top: 30px; padding: 20px; background: #f5f5f5; border-radius: 8px; max-width: 600px; margin-left: auto; margin-right: auto;">
+        <h3 style="margin-top: 0;">Player Preferences</h3>
+        <div style="margin: 15px 0;">
+            <label style="display: block; margin-bottom: 10px;">
+                <strong>Default Behavior:</strong>
+            </label>
+            <select id="playerPreference" onchange="updatePlayerPreference()" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc;">
+                <option value="ask">Always ask me to choose</option>
+                <option value="instant">Always use Instant.io</option>
+                <option value="webtorrent">Always use WebTorrent</option>
+                <option value="bitport">Always use Bitport.io</option>
+                <option value="seedr">Always use Seedr.cc</option>
+            </select>
+        </div>
+        
+        <div style="margin: 15px 0;">
+            <button onclick="window.location.href += '?select=true'" style="
+                background: #007cba;
+                color: white;
+                border: none;
+                padding: 10px 15px;
+                border-radius: 5px;
+                cursor: pointer;
+                margin-right: 10px;
+            ">Force Player Selection</button>
+            
+            <button onclick="resetPreferences()" style="
+                background: #666;
+                color: white;
+                border: none;
+                padding: 10px 15px;
+                border-radius: 5px;
+                cursor: pointer;
+            ">Reset Preferences</button>
+        </div>
+        
+        <div style="font-size: 12px; color: #666; margin-top: 15px;">
+            <strong>OS Support:</strong><br>
+            • <strong>Android:</strong> Web players + Default torrent app option<br>
+            • <strong>iOS:</strong> Web players only (no native torrent apps)<br>
+            • <strong>Windows/macOS/Other:</strong> Web players available
+        </div>
+    </div>
+
+    <script>
+        function updatePlayerPreference() {
+            var select = document.getElementById('playerPreference');
+            setPreferredPlayer(select.value);
+        }
+        
+        function resetPreferences() {
+            localStorage.removeItem('preferredPlayer');
+            document.getElementById('playerPreference').value = 'ask';
+            alert('Preferences reset! You will be asked to choose a player next time.');
+        }
+        
+        // Load saved preference on page load
+        window.addEventListener('load', function() {
+            var savedPreference = getPreferredPlayer();
+            document.getElementById('playerPreference').value = savedPreference;
+        });
+    </script>
 </body>
 </html>
