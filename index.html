@@ -29,6 +29,75 @@
             return 'other';
         }
 
+        function detectWebView() {
+            var userAgent = navigator.userAgent || '';
+            
+            // Telegram WebView detection
+            if (userAgent.includes('TelegramBot') || userAgent.includes('Telegram')) {
+                return 'telegram';
+            }
+            
+            // WhatsApp WebView detection
+            if (userAgent.includes('WhatsApp')) {
+                return 'whatsapp';
+            }
+            
+            // Facebook/Instagram WebView detection
+            if (userAgent.includes('FBAN') || userAgent.includes('FBAV') || userAgent.includes('Instagram')) {
+                return 'facebook';
+            }
+            
+            // Generic WebView detection
+            if (userAgent.includes('wv') || userAgent.includes('WebView')) {
+                return 'webview';
+            }
+            
+            return 'browser';
+        }
+
+        function openInExternalBrowser(url) {
+            // Try different methods to open in external browser
+            
+            // Method 1: Create a temporary link and click it
+            var link = document.createElement('a');
+            link.href = url;
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+            
+            // For mobile apps, try to trigger external browser
+            if (navigator.userAgent.match(/(iPhone|iPod|iPad|Android)/)) {
+                // Add intent for Android
+                if (navigator.userAgent.match(/Android/)) {
+                    link.href = 'intent://' + url.replace(/^https?:\/\//, '') + '#Intent;scheme=https;end';
+                }
+            }
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            // Method 2: Use window.open as fallback
+            setTimeout(function() {
+                window.open(url, '_blank', 'noopener,noreferrer');
+            }, 100);
+        }
+
+        function cleanMagnetLink(magnetLink) {
+            // Remove multiple slashes and fix common issues
+            magnetLink = magnetLink.replace(/magnet:\/\/+/g, 'magnet:');
+            magnetLink = magnetLink.replace(/magnet:\/{3,}/g, 'magnet:');
+            magnetLink = magnetLink.replace(/magnet:\/([^\/])/g, 'magnet:$1');
+            
+            // Ensure proper magnet format
+            if (!magnetLink.startsWith('magnet:?')) {
+                if (magnetLink.startsWith('magnet:')) {
+                    magnetLink = magnetLink.replace('magnet:', 'magnet:?');
+                }
+            }
+            
+            return magnetLink;
+        }
+
         function getAvailablePlayers(os) {
             var players = {
                 'instant': {
@@ -54,6 +123,12 @@
                     url: 'https://www.seedr.cc/?magnet=',
                     description: 'Cloud storage torrent service',
                     supported: ['all']
+                },
+                'external': {
+                    name: 'Open in External Browser',
+                    url: '',
+                    description: 'Force open in external browser (recommended for Telegram)',
+                    supported: ['all']
                 }
             };
 
@@ -73,15 +148,33 @@
         function redirectToPlayer(magnetLink, player, os) {
             var players = getAvailablePlayers(os);
             
+            // Clean the magnet link before processing
+            magnetLink = cleanMagnetLink(magnetLink);
+            
             if (player === 'native' && os === 'Android') {
                 // Direct magnet link for Android default app
                 window.location.href = magnetLink;
                 return;
             }
             
+            if (player === 'external') {
+                // Create a redirect page URL to open in external browser
+                var currentURL = window.location.origin + window.location.pathname;
+                var redirectURL = currentURL + '#' + encodeURIComponent(magnetLink.replace('magnet:?xt=urn:btih:', ''));
+                openInExternalBrowser(redirectURL);
+                return;
+            }
+            
             if (players[player]) {
                 var url = players[player].url + encodeURIComponent(magnetLink);
-                window.location.href = url;
+                
+                // Check if we're in a webview and should open externally
+                var webViewType = detectWebView();
+                if (webViewType !== 'browser' && getPreferredPlayer() === 'external') {
+                    openInExternalBrowser(url);
+                } else {
+                    window.location.href = url;
+                }
             } else {
                 // Fallback to instant.io
                 redirectToInstantIO(magnetLink);
@@ -96,6 +189,9 @@
 
         function showPlayerSelection(magnetLink, os) {
             var players = getAvailablePlayers(os);
+            var webViewType = detectWebView();
+            var isInWebView = webViewType !== 'browser';
+            
             var modalHTML = `
                 <div id="playerModal" style="
                     position: fixed; 
@@ -120,23 +216,35 @@
                         overflow-y: auto;
                     ">
                         <h2 style="margin-top: 0; color: #333;">Choose Torrent Player</h2>
-                        <p style="color: #666; margin-bottom: 20px;">Detected OS: <strong>${os}</strong></p>
+                        <p style="color: #666; margin-bottom: 20px;">
+                            Detected OS: <strong>${os}</strong><br>
+                            ${isInWebView ? `<span style="color: #ff6600;">⚠️ ${webViewType} WebView detected</span>` : 'Regular browser'}
+                        </p>
+                        ${isInWebView ? `
+                            <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 10px; border-radius: 5px; margin-bottom: 15px;">
+                                <strong>Recommendation:</strong> Use "Open in External Browser" for better compatibility
+                            </div>
+                        ` : ''}
                         <div id="playerOptions">
             `;
 
             Object.keys(players).forEach(function(key) {
                 var player = players[key];
+                var isRecommended = (isInWebView && key === 'external') || (!isInWebView && key === 'instant');
+                
                 modalHTML += `
                     <div onclick="selectPlayer('${key}', '${magnetLink}', '${os}')" style="
-                        border: 2px solid #ddd;
+                        border: 2px solid ${isRecommended ? '#28a745' : '#ddd'};
                         border-radius: 8px;
                         padding: 15px;
                         margin: 10px 0;
                         cursor: pointer;
                         transition: all 0.3s ease;
-                        background: #f9f9f9;
+                        background: ${isRecommended ? '#f8fff9' : '#f9f9f9'};
+                        position: relative;
                     " onmouseover="this.style.borderColor='#007cba'; this.style.background='#f0f8ff';" 
-                       onmouseout="this.style.borderColor='#ddd'; this.style.background='#f9f9f9';">
+                       onmouseout="this.style.borderColor='${isRecommended ? '#28a745' : '#ddd'}'; this.style.background='${isRecommended ? '#f8fff9' : '#f9f9f9'}';">
+                        ${isRecommended ? '<div style="position: absolute; top: 5px; right: 10px; color: #28a745; font-weight: bold; font-size: 12px;">RECOMMENDED</div>' : ''}
                         <h3 style="margin: 0 0 5px 0; color: #333;">${player.name}</h3>
                         <p style="margin: 0; color: #666; font-size: 14px;">${player.description}</p>
                     </div>
@@ -205,12 +313,21 @@
                     }
                 }
                 
+                // Clean the magnet link to fix Telegram issues
+                magnetLink = cleanMagnetLink(magnetLink);
+                
                 var os = detectOS();
+                var webViewType = detectWebView();
                 var preferredPlayer = getPreferredPlayer();
                 
                 // Check for URL parameter to force player selection
                 var urlParams = new URLSearchParams(window.location.search);
                 var forceSelect = urlParams.get('select') === 'true';
+                
+                // Auto-select external browser for Telegram WebView if no preference set
+                if (webViewType === 'telegram' && preferredPlayer === 'ask') {
+                    preferredPlayer = 'external';
+                }
                 
                 if (preferredPlayer === 'ask' || forceSelect) {
                     // Show player selection modal
@@ -231,7 +348,7 @@
                 }
                 
                 // Update message with OS-specific info
-                updateMessageForOS(os);
+                updateMessageForOS(os, webViewType);
             }
             else {
                 messageElement.innerHTML = `
@@ -246,25 +363,29 @@
             }
         }
         
-        function updateMessageForOS(os) {
+        function updateMessageForOS(os, webViewType) {
             var messageElement = document.getElementById("message");
             var osSpecificMessage = "";
             
-            switch(os) {
-                case 'Android':
-                    osSpecificMessage = "Android detected - You can choose web players or your default torrent app.";
-                    break;
-                case 'iOS':
-                    osSpecificMessage = "iOS detected - Web players recommended (no native torrent apps).";
-                    break;
-                case 'Windows':
-                    osSpecificMessage = "Windows detected - Web players available.";
-                    break;
-                case 'macOS':
-                    osSpecificMessage = "macOS detected - Web players available.";
-                    break;
-                default:
-                    osSpecificMessage = "Multiple torrent players available.";
+            if (webViewType && webViewType !== 'browser') {
+                osSpecificMessage = `⚠️ ${webViewType} WebView detected - External browser recommended for better compatibility.`;
+            } else {
+                switch(os) {
+                    case 'Android':
+                        osSpecificMessage = "Android detected - You can choose web players or your default torrent app.";
+                        break;
+                    case 'iOS':
+                        osSpecificMessage = "iOS detected - Web players recommended (no native torrent apps).";
+                        break;
+                    case 'Windows':
+                        osSpecificMessage = "Windows detected - Web players available.";
+                        break;
+                    case 'macOS':
+                        osSpecificMessage = "macOS detected - Web players available.";
+                        break;
+                    default:
+                        osSpecificMessage = "Multiple torrent players available.";
+                }
             }
             
             var currentContent = messageElement.innerHTML;
@@ -354,6 +475,7 @@
             </label>
             <select id="playerPreference" onchange="updatePlayerPreference()" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc;">
                 <option value="ask">Always ask me to choose</option>
+                <option value="external">Always open in external browser (recommended for Telegram)</option>
                 <option value="instant">Always use Instant.io</option>
                 <option value="webtorrent">Always use WebTorrent</option>
                 <option value="bitport">Always use Bitport.io</option>
@@ -386,7 +508,10 @@
             <strong>OS Support:</strong><br>
             • <strong>Android:</strong> Web players + Default torrent app option<br>
             • <strong>iOS:</strong> Web players only (no native torrent apps)<br>
-            • <strong>Windows/macOS/Other:</strong> Web players available
+            • <strong>Windows/macOS/Other:</strong> Web players available<br><br>
+            <strong>WebView Support:</strong><br>
+            • <strong>Telegram/WhatsApp/Facebook:</strong> External browser option recommended<br>
+            • <strong>Regular Browser:</strong> All options work normally
         </div>
     </div>
 
