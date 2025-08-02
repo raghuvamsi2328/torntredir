@@ -213,13 +213,13 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🎬 M3U Torrent Player</h1>
-            <p>Get M3U playlists for torrent streaming</p>
+            <h1>🎬 Torrent File Browser</h1>
+            <p>Get direct file links and M3U playlists for torrent streaming</p>
         </div>
         
         <div class="player-section">
             <div class="controls">
-                <button class="btn btn-primary" onclick="startStreaming()">▶️ Get M3U Playlist</button>
+                <button class="btn btn-primary" onclick="startStreaming()">📁 Browse Files</button>
                 <button class="btn btn-secondary" onclick="openInDefaultApp()">📱 Open in Default App</button>
             </div>
             
@@ -239,17 +239,24 @@
                 <h3>📋 Server Setup</h3>
                 <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0;">
                     <p><strong>Current Server URL:</strong> http://192.168.1.19:9050</p>
+                    <p><strong>API Format:</strong> /torrents/torrenthash (returns JSON with file links)</p>
                     <p><strong>M3U Format:</strong> /torrents/torrenthash/files</p>
                     
                     <p style="margin-top: 15px;"><strong>How to use:</strong></p>
                     <ol>
                         <li>Make sure your server is running on 192.168.1.19:9050</li>
                         <li>Add a torrent hash after # in the URL</li>
-                        <li>Click "Stream via Peerflix" to get the M3U playlist</li>
-                        <li>Use the M3U URL in VLC, MPV, or any media player</li>
+                        <li>Click "Get M3U Playlist" to load torrent info</li>
+                        <li>Get direct file links and M3U playlist URL</li>
+                        <li>Use links in VLC, MPV, or any media player</li>
                     </ol>
                     
-                    <p><small>The M3U playlist will be available at: http://192.168.1.19:9050/torrents/[hash]/files</small></p>
+                    <p style="margin-top: 15px;"><strong>Example URLs:</strong></p>
+                    <ul style="font-size: 12px;">
+                        <li>Torrent Info: http://192.168.1.19:9050/torrents/[hash]</li>
+                        <li>M3U Playlist: http://192.168.1.19:9050/torrents/[hash]/files</li>
+                        <li>Direct File: http://192.168.1.19:9050/torrents/[hash]/files/[filename]</li>
+                    </ul>
                 </div>
             </div>
             
@@ -314,11 +321,11 @@
             if (hash.startsWith('magnet:')) {
                 // Extract hash from full magnet link
                 const match = hash.match(/xt=urn:btih:([a-fA-F0-9]{40})/);
-                return match ? match[1] : null;
+                return match ? match[1].toLowerCase() : null;
             } else {
                 // Assume it's just a hash
                 const cleanHash = hash.replace(/^\/+/, '');
-                return cleanHash.length === 40 ? cleanHash : null;
+                return cleanHash.length === 40 ? cleanHash.toLowerCase() : null;
             }
         }
 
@@ -367,17 +374,128 @@
                 return;
             }
 
-            showStatus('🔗 Getting M3U playlist...', 'info');
+            showStatus('🔗 Getting torrent info...', 'info');
             document.getElementById('progress').style.display = 'block';
 
-            // Directly construct the M3U playlist URL
-            const m3uUrl = `${peerflixServerUrl}/torrents/${currentTorrentHash}/files`;
+            // Fetch torrent info from your server
+            fetch(`${peerflixServerUrl}/torrents/${currentTorrentHash}`)
+                .then(response => {
+                    if (response.ok) {
+                        return response.json();
+                    } else {
+                        throw new Error(`Server responded with ${response.status}`);
+                    }
+                })
+                .then(torrentData => {
+                    showStatus('✅ Torrent info loaded successfully!', 'success');
+                    document.getElementById('torrentInfo').textContent = `📁 ${torrentData.name || 'Unknown torrent'}`;
+                    
+                    // Display files with direct links
+                    displayTorrentFiles(torrentData, currentTorrentHash);
+                })
+                .catch(error => {
+                    showStatus('Error getting torrent info: ' + error.message, 'error');
+                    console.error('Torrent info error:', error);
+                    
+                    // Show basic M3U interface as fallback
+                    const m3uUrl = `${peerflixServerUrl}/torrents/${currentTorrentHash}/files`;
+                    loadM3UPlaylist(m3uUrl, currentTorrentHash);
+                });
+        }
+
+        function displayTorrentFiles(torrentData, infoHash) {
+            const fileList = document.getElementById('fileList');
+            fileList.innerHTML = '<h3>📁 Files in this torrent:</h3>';
             
-            showStatus('🎬 Loading M3U playlist...', 'info');
-            document.getElementById('torrentInfo').textContent = `📁 Torrent Hash: ${currentTorrentHash}`;
+            // Show M3U playlist info
+            const m3uUrl = `${peerflixServerUrl}/torrents/${infoHash}/files`;
+            const playlistInfo = document.createElement('div');
+            playlistInfo.className = 'playlist-info';
+            playlistInfo.innerHTML = `
+                <strong>🎯 M3U Playlist URL:</strong><br>
+                <code style="word-break: break-all;">${m3uUrl}</code><br>
+                <small>This M3U playlist URL can be used in VLC, MPV, or any media player that supports M3U playlists</small>
+            `;
             
-            // Try to fetch and play the M3U playlist
-            loadM3UPlaylist(m3uUrl, currentTorrentHash);
+            const progressContainer = document.getElementById('progress');
+            if (!document.querySelector('.playlist-info')) {
+                progressContainer.appendChild(playlistInfo);
+            }
+            
+            // Display individual files
+            torrentData.files.forEach((file, index) => {
+                const fileItem = document.createElement('div');
+                fileItem.className = 'file-item';
+                
+                const isVideo = file.name.toLowerCase().match(/\.(mp4|avi|mkv|mov|wmv|flv|webm|m4v)$/);
+                const isAudio = file.name.toLowerCase().match(/\.(mp3|wav|ogg|flac|aac)$/);
+                const isImage = file.name.toLowerCase().match(/\.(jpg|jpeg|png|gif|bmp|webp)$/);
+                
+                const fileSize = formatBytes(file.length);
+                const directUrl = `${peerflixServerUrl}${file.link}`;
+                
+                fileItem.innerHTML = `
+                    <div class="file-info">
+                        <div class="file-name">${isVideo ? '🎬' : isAudio ? '🎵' : isImage ? '🖼️' : '📄'} ${file.name}</div>
+                        <div class="file-size">${fileSize}</div>
+                        <div style="font-size: 12px; color: #666; margin-top: 5px;">
+                            <strong>Direct Link:</strong><br>
+                            <code style="word-break: break-all; font-size: 11px;">${directUrl}</code>
+                        </div>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 5px;">
+                        ${isVideo ? `<button class="btn btn-primary" onclick="playDirectVideoFromServer('${directUrl}', '${file.name}')">▶️ Play</button>` : ''}
+                        <button class="btn btn-secondary" onclick="openDirectLink('${directUrl}', '${file.name}')">🔗 Open Link</button>
+                        <button class="btn btn-secondary" onclick="copyToClipboard('${directUrl}')">📋 Copy URL</button>
+                    </div>
+                `;
+                
+                fileList.appendChild(fileItem);
+            });
+            
+            // Auto-play first video file
+            const firstVideo = torrentData.files.find(file => 
+                file.name.toLowerCase().match(/\.(mp4|avi|mkv|mov|wmv|flv|webm|m4v)$/));
+            if (firstVideo) {
+                const directUrl = `${peerflixServerUrl}${firstVideo.link}`;
+                setTimeout(() => playDirectVideoFromServer(directUrl, firstVideo.name), 1000);
+            }
+        }
+
+        function playDirectVideoFromServer(url, fileName) {
+            const video = document.getElementById('videoPlayer');
+            const videoContainer = document.getElementById('videoContainer');
+            
+            showStatus(`▶️ Playing: ${fileName}`, 'info');
+            
+            // Set video source directly
+            video.src = url;
+            videoContainer.style.display = 'block';
+            video.scrollIntoView({ behavior: 'smooth' });
+            
+            video.addEventListener('loadedmetadata', () => {
+                showStatus(`✅ Now playing: ${fileName}`, 'success');
+                video.play().catch(e => console.log('Autoplay prevented:', e));
+            });
+            
+            video.addEventListener('error', (e) => {
+                showStatus(`Error playing video: ${fileName}`, 'error');
+                console.error('Video error:', e);
+            });
+        }
+
+        function openDirectLink(url, fileName) {
+            window.open(url, '_blank');
+            showStatus(`🔗 Opening: ${fileName}`, 'info');
+        }
+
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                showStatus('📋 URL copied to clipboard!', 'success');
+            }).catch(err => {
+                console.error('Failed to copy: ', err);
+                showStatus('❌ Failed to copy URL', 'error');
+            });
         }
 
         function loadM3UPlaylist(m3uUrl, infoHash) {
