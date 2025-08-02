@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Web Torrent Player</title>
+    <title>Peerflix HLS Player</title>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script src="https://cdn.jsdelivr.net/npm/webtorrent@latest/webtorrent.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest/dist/hls.min.js"></script>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -175,6 +175,28 @@
             font-size: 14px;
             margin-top: 5px;
         }
+        .server-config, .setup-instructions {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            border: 1px solid #dee2e6;
+        }
+        .server-config h3, .setup-instructions h3 {
+            margin-top: 0;
+            color: #495057;
+        }
+        .server-config input {
+            font-family: monospace;
+        }
+        .playlist-info {
+            background: #e7f3ff;
+            border: 1px solid #b8daff;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            color: #004085;
+        }
         @media (max-width: 768px) {
             .controls {
                 flex-direction: column;
@@ -191,14 +213,44 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🎬 Web Torrent Player</h1>
-            <p>Stream torrents directly in your browser or open with default app</p>
+            <h1>🎬 M3U Torrent Player</h1>
+            <p>Get M3U playlists for torrent streaming</p>
         </div>
         
         <div class="player-section">
             <div class="controls">
-                <button class="btn btn-primary" onclick="startStreaming()">▶️ Stream in Browser</button>
+                <button class="btn btn-primary" onclick="startStreaming()">▶️ Get M3U Playlist</button>
                 <button class="btn btn-secondary" onclick="openInDefaultApp()">📱 Open in Default App</button>
+            </div>
+            
+            <div id="serverConfig" class="server-config" style="display: none;">
+                <h3>🛠️ Server Configuration</h3>
+                <div style="margin: 15px 0;">
+                    <label>Server URL:</label>
+                    <input type="text" id="serverUrl" placeholder="http://192.168.1.19:9050" value="http://192.168.1.19:9050" style="width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px;">
+                </div>
+                <div style="margin: 15px 0;">
+                    <button class="btn btn-primary" onclick="connectToPeerflix()">Connect to Server</button>
+                    <button class="btn btn-secondary" onclick="showServerSetup()">Setup Instructions</button>
+                </div>
+            </div>
+            
+            <div id="setupInstructions" class="setup-instructions" style="display: none;">
+                <h3>📋 Server Setup</h3>
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0;">
+                    <p><strong>Current Server URL:</strong> http://192.168.1.19:9050</p>
+                    <p><strong>M3U Format:</strong> /torrents/torrenthash/files</p>
+                    
+                    <p style="margin-top: 15px;"><strong>How to use:</strong></p>
+                    <ol>
+                        <li>Make sure your server is running on 192.168.1.19:9050</li>
+                        <li>Add a torrent hash after # in the URL</li>
+                        <li>Click "Stream via Peerflix" to get the M3U playlist</li>
+                        <li>Use the M3U URL in VLC, MPV, or any media player</li>
+                    </ol>
+                    
+                    <p><small>The M3U playlist will be available at: http://192.168.1.19:9050/torrents/[hash]/files</small></p>
+                </div>
             </div>
             
             <div id="status" class="status"></div>
@@ -239,9 +291,10 @@
     </div>
 
     <script>
-        let client = new WebTorrent();
-        let currentTorrent = null;
-        let magnetLink = '';
+        let hls = null;
+        let currentTorrentHash = '';
+        let peerflixServerUrl = 'http://192.168.1.19:9050';
+        let playlistUrl = '';
 
         function showStatus(message, type = 'info') {
             const status = document.getElementById('status');
@@ -252,6 +305,395 @@
 
         function hideStatus() {
             document.getElementById('status').style.display = 'none';
+        }
+
+        function extractMagnetFromHash() {
+            const hash = window.location.hash.substring(1);
+            if (!hash) return null;
+
+            if (hash.startsWith('magnet:')) {
+                // Extract hash from full magnet link
+                const match = hash.match(/xt=urn:btih:([a-fA-F0-9]{40})/);
+                return match ? match[1] : null;
+            } else {
+                // Assume it's just a hash
+                const cleanHash = hash.replace(/^\/+/, '');
+                return cleanHash.length === 40 ? cleanHash : null;
+            }
+        }
+
+        function showServerSetup() {
+            const setupDiv = document.getElementById('setupInstructions');
+            setupDiv.style.display = setupDiv.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function connectToPeerflix() {
+            const serverUrl = document.getElementById('serverUrl').value.trim();
+            if (!serverUrl) {
+                showStatus('Please enter a valid server URL', 'error');
+                return;
+            }
+            
+            peerflixServerUrl = serverUrl.replace(/\/$/, ''); // Remove trailing slash
+            
+            // Test connection to your custom server
+            fetch(`${peerflixServerUrl}/torrents`)
+                .then(response => {
+                    if (response.ok || response.status === 404) { // 404 is ok, means server is running
+                        showStatus('✅ Connected to server successfully!', 'success');
+                        document.getElementById('serverConfig').style.display = 'none';
+                        localStorage.setItem('peerflixServerUrl', peerflixServerUrl);
+                    } else {
+                        throw new Error('Server responded with error');
+                    }
+                })
+                .catch(error => {
+                    showStatus('❌ Failed to connect to server. Make sure it\'s running!', 'error');
+                    console.error('Connection error:', error);
+                });
+        }
+
+        function startStreaming() {
+            currentTorrentHash = extractMagnetFromHash();
+            
+            if (!currentTorrentHash) {
+                showStatus('No valid torrent hash found. Please add a hash or magnet link after # in the URL.', 'error');
+                return;
+            }
+
+            if (!peerflixServerUrl) {
+                document.getElementById('serverConfig').style.display = 'block';
+                showStatus('Please configure server first', 'error');
+                return;
+            }
+
+            showStatus('🔗 Getting M3U playlist...', 'info');
+            document.getElementById('progress').style.display = 'block';
+
+            // Directly construct the M3U playlist URL
+            const m3uUrl = `${peerflixServerUrl}/torrents/${currentTorrentHash}/files`;
+            
+            showStatus('🎬 Loading M3U playlist...', 'info');
+            document.getElementById('torrentInfo').textContent = `📁 Torrent Hash: ${currentTorrentHash}`;
+            
+            // Try to fetch and play the M3U playlist
+            loadM3UPlaylist(m3uUrl, currentTorrentHash);
+        }
+
+        function loadM3UPlaylist(m3uUrl, infoHash) {
+            // Show playlist info
+            const playlistInfo = document.createElement('div');
+            playlistInfo.className = 'playlist-info';
+            playlistInfo.innerHTML = `
+                <strong>🎯 M3U Playlist URL:</strong><br>
+                <code style="word-break: break-all;">${m3uUrl}</code><br>
+                <small>This M3U playlist URL can be used in VLC, MPV, or any media player that supports M3U playlists</small>
+            `;
+            
+            const progressContainer = document.getElementById('progress');
+            if (!document.querySelector('.playlist-info')) {
+                progressContainer.appendChild(playlistInfo);
+            }
+
+            // Try to fetch the M3U content
+            fetch(m3uUrl)
+                .then(response => {
+                    if (response.ok) {
+                        return response.text();
+                    } else {
+                        throw new Error(`Server responded with ${response.status}`);
+                    }
+                })
+                .then(m3uContent => {
+                    showStatus('✅ M3U playlist loaded successfully!', 'success');
+                    parseM3UContent(m3uContent, infoHash);
+                })
+                .catch(error => {
+                    showStatus('M3U playlist ready. You can copy the URL above to use in external players.', 'info');
+                    console.log('M3U fetch note:', error.message);
+                    
+                    // Show basic file list interface even if we can't fetch content
+                    createBasicFileInterface(infoHash);
+                });
+        }
+
+        function parseM3UContent(content, infoHash) {
+            const lines = content.split('\n');
+            const files = [];
+            let currentFile = null;
+            
+            for (let line of lines) {
+                line = line.trim();
+                if (line.startsWith('#EXTINF:')) {
+                    // Extract file info from #EXTINF line
+                    const match = line.match(/#EXTINF:([^,]*),(.+)/);
+                    if (match) {
+                        currentFile = {
+                            duration: match[1],
+                            name: match[2],
+                            url: null
+                        };
+                    }
+                } else if (line && !line.startsWith('#') && currentFile) {
+                    // This should be the file URL
+                    currentFile.url = line;
+                    files.push(currentFile);
+                    currentFile = null;
+                }
+            }
+            
+            if (files.length > 0) {
+                displayM3UFiles(files, infoHash);
+                // Auto-play first video file
+                const firstVideo = files.find(file => 
+                    file.name.toLowerCase().match(/\.(mp4|avi|mkv|mov|wmv|flv|webm|m4v)$/));
+                if (firstVideo) {
+                    setTimeout(() => playDirectVideo(firstVideo), 1000);
+                }
+            } else {
+                createBasicFileInterface(infoHash);
+            }
+        }
+
+        function createBasicFileInterface(infoHash) {
+            const fileList = document.getElementById('fileList');
+            fileList.innerHTML = `
+                <h3>📁 Media Files Available:</h3>
+                <div class="file-item">
+                    <div class="file-info">
+                        <div class="file-name">🎬 Stream via M3U Playlist</div>
+                        <div class="file-size">Use the M3U URL above in your preferred media player</div>
+                    </div>
+                    <button class="btn btn-primary" onclick="openM3UInPlayer()">📺 Open in Player</button>
+                </div>
+            `;
+        }
+
+        function displayM3UFiles(files, infoHash) {
+            const fileList = document.getElementById('fileList');
+            fileList.innerHTML = '<h3>📁 Files from M3U playlist:</h3>';
+            
+            files.forEach((file, index) => {
+                const fileItem = document.createElement('div');
+                fileItem.className = 'file-item';
+                
+                const isVideo = file.name.toLowerCase().match(/\.(mp4|avi|mkv|mov|wmv|flv|webm|m4v)$/);
+                const isAudio = file.name.toLowerCase().match(/\.(mp3|wav|ogg|flac|aac)$/);
+                
+                fileItem.innerHTML = `
+                    <div class="file-info">
+                        <div class="file-name">${isVideo ? '🎬' : isAudio ? '🎵' : '📄'} ${file.name}</div>
+                        <div class="file-size">Duration: ${file.duration || 'Unknown'}</div>
+                    </div>
+                    ${isVideo ? `<button class="btn btn-primary" onclick="playDirectVideo(${JSON.stringify(file).replace(/"/g, '&quot;')})">▶️ Play</button>` : ''}
+                `;
+                
+                fileList.appendChild(fileItem);
+            });
+        }
+
+        function playDirectVideo(file) {
+            const video = document.getElementById('videoPlayer');
+            const videoContainer = document.getElementById('videoContainer');
+            
+            showStatus(`▶️ Playing: ${file.name}`, 'info');
+            
+            // Set video source directly
+            video.src = file.url;
+            videoContainer.style.display = 'block';
+            video.scrollIntoView({ behavior: 'smooth' });
+            
+            video.addEventListener('loadedmetadata', () => {
+                showStatus(`✅ Now playing: ${file.name}`, 'success');
+                video.play().catch(e => console.log('Autoplay prevented:', e));
+            });
+            
+            video.addEventListener('error', (e) => {
+                showStatus(`Error playing video: ${file.name}`, 'error');
+                console.error('Video error:', e);
+            });
+        }
+
+        function openM3UInPlayer() {
+            const m3uUrl = `${peerflixServerUrl}/torrents/${currentTorrentHash}/files`;
+            
+            // Try to open in system default player
+            const link = document.createElement('a');
+            link.href = m3uUrl;
+            link.target = '_blank';
+            link.click();
+            
+            showStatus('🎬 Opening M3U playlist in external player...', 'info');
+        }
+
+        function getPlaylist(infoHash) {
+            // Get torrent files
+            fetch(`${peerflixServerUrl}/torrents/${infoHash}`)
+                .then(response => response.json())
+                .then(torrent => {
+                    document.getElementById('torrentInfo').textContent = `📁 ${torrent.name || 'Loading...'}`;
+                    
+                    // Find video files
+                    const videoFiles = torrent.files ? torrent.files.filter(file => 
+                        file.name.toLowerCase().match(/\.(mp4|avi|mkv|mov|wmv|flv|webm|m4v)$/)) : [];
+                    
+                    if (videoFiles.length > 0) {
+                        displayPeerflixFiles(torrent.files, infoHash);
+                        // Auto-play first video
+                        setTimeout(() => playHLSVideo(videoFiles[0], infoHash), 1000);
+                    } else {
+                        showStatus('No video files found in this torrent', 'error');
+                    }
+                    
+                    // Start progress monitoring
+                    monitorProgress(infoHash);
+                })
+                .catch(error => {
+                    showStatus('Error getting torrent info: ' + error.message, 'error');
+                    console.error('Torrent info error:', error);
+                });
+        }
+
+        function playHLSVideo(file, infoHash) {
+            const video = document.getElementById('videoPlayer');
+            const videoContainer = document.getElementById('videoContainer');
+            
+            // Construct HLS playlist URL using your specific format
+            playlistUrl = `${peerflixServerUrl}/torrents/${infoHash}/files`;
+            
+            showStatus(`🎵 Loading HLS stream: ${file.name}`, 'info');
+            
+            // Show playlist info
+            const playlistInfo = document.createElement('div');
+            playlistInfo.className = 'playlist-info';
+            playlistInfo.innerHTML = `
+                <strong>🎯 M3U Playlist URL:</strong><br>
+                <code style="word-break: break-all;">${playlistUrl}</code><br>
+                <small>This M3U playlist URL can be used in any media player that supports M3U playlists</small>
+            `;
+            
+            const progressContainer = document.getElementById('progress');
+            if (!document.querySelector('.playlist-info')) {
+                progressContainer.appendChild(playlistInfo);
+            }
+
+            // Check if HLS.js is supported
+            if (Hls.isSupported()) {
+                // Use HLS.js for browsers that don't support HLS natively
+                if (hls) {
+                    hls.destroy();
+                }
+                
+                hls = new Hls({
+                    debug: false,
+                    enableWorker: true,
+                    lowLatencyMode: true,
+                });
+                
+                hls.loadSource(playlistUrl);
+                hls.attachMedia(video);
+                
+                hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                    showStatus(`▶️ Playing: ${file.name}`, 'success');
+                    videoContainer.style.display = 'block';
+                    video.scrollIntoView({ behavior: 'smooth' });
+                    video.play().catch(e => console.log('Autoplay prevented:', e));
+                });
+                
+                hls.on(Hls.Events.ERROR, (event, data) => {
+                    console.error('HLS Error:', data);
+                    if (data.fatal) {
+                        showStatus('HLS playback error: ' + data.details, 'error');
+                    }
+                });
+                
+            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                // Native HLS support (Safari, iOS)
+                video.src = playlistUrl;
+                video.addEventListener('loadedmetadata', () => {
+                    showStatus(`▶️ Playing: ${file.name}`, 'success');
+                    videoContainer.style.display = 'block';
+                    video.scrollIntoView({ behavior: 'smooth' });
+                    video.play().catch(e => console.log('Autoplay prevented:', e));
+                });
+                
+            } else {
+                showStatus('HLS not supported in this browser', 'error');
+            }
+        }
+
+        function displayPeerflixFiles(files, infoHash) {
+            const fileList = document.getElementById('fileList');
+            fileList.innerHTML = '<h3>📁 Files in this torrent:</h3>';
+            
+            files.forEach((file, index) => {
+                const fileItem = document.createElement('div');
+                fileItem.className = 'file-item';
+                
+                const isVideo = file.name.toLowerCase().match(/\.(mp4|avi|mkv|mov|wmv|flv|webm|m4v)$/);
+                const isAudio = file.name.toLowerCase().match(/\.(mp3|wav|ogg|flac|aac)$/);
+                
+                const fileSize = formatBytes(file.length);
+                
+                fileItem.innerHTML = `
+                    <div class="file-info">
+                        <div class="file-name">${isVideo ? '🎬' : isAudio ? '🎵' : '📄'} ${file.name}</div>
+                        <div class="file-size">${fileSize}</div>
+                    </div>
+                    ${isVideo ? `<button class="btn btn-primary" onclick="playHLSVideo({name: '${file.name}', index: ${file.index}}, '${infoHash}')">▶️ Play HLS</button>` : ''}
+                    <button class="btn btn-secondary" onclick="downloadPeerflixFile('${infoHash}', ${file.index}, '${file.name}')">💾 Download</button>
+                `;
+                
+                fileList.appendChild(fileItem);
+            });
+        }
+
+        function downloadPeerflixFile(infoHash, fileIndex, fileName) {
+            const downloadUrl = `${peerflixServerUrl}/torrents/${infoHash}/files/${fileIndex}`;
+            
+            const a = document.createElement('a');
+            a.href = downloadUrl;
+            a.download = fileName;
+            a.target = '_blank';
+            a.click();
+            
+            showStatus(`📥 Downloading: ${fileName}`, 'info');
+        }
+
+        function monitorProgress(infoHash) {
+            const interval = setInterval(() => {
+                fetch(`${peerflixServerUrl}/torrents/${infoHash}`)
+                    .then(response => response.json())
+                    .then(torrent => {
+                        if (!torrent) {
+                            clearInterval(interval);
+                            return;
+                        }
+
+                        // Update stats
+                        const downloaded = Math.round((torrent.downloaded || 0) / (torrent.length || 1) * 100);
+                        const downloadSpeed = formatSpeed(torrent.downloadSpeed || 0);
+                        const uploadSpeed = formatSpeed(torrent.uploadSpeed || 0);
+                        const peers = torrent.numPeers || 0;
+
+                        document.getElementById('downloadSpeed').textContent = downloadSpeed;
+                        document.getElementById('uploadSpeed').textContent = uploadSpeed;
+                        document.getElementById('peers').textContent = peers;
+                        document.getElementById('downloaded').textContent = downloaded + '%';
+                        
+                        // Update progress bar
+                        document.getElementById('progressFill').style.width = downloaded + '%';
+                        
+                        if (downloaded === 100) {
+                            showStatus('Download completed! 🎉', 'success');
+                            clearInterval(interval);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Progress monitoring error:', error);
+                        clearInterval(interval);
+                    });
+            }, 2000);
         }
 
         function formatBytes(bytes) {
@@ -266,155 +708,35 @@
             return formatBytes(bytesPerSecond) + '/s';
         }
 
-        function extractMagnetFromHash() {
-            const hash = window.location.hash.substring(1);
-            if (!hash) return null;
-
-            if (hash.startsWith('magnet:')) {
-                return hash;
-            } else {
-                // Assume it's just a hash
-                const cleanHash = hash.replace(/^\/+/, '');
-                return `magnet:?xt=urn:btih:${cleanHash}`;
-            }
-        }
-
-        function startStreaming() {
-            magnetLink = extractMagnetFromHash();
-            
-            if (!magnetLink) {
-                showStatus('No magnet link found. Please add a hash or magnet link after # in the URL.', 'error');
-                return;
-            }
-
-            showStatus('Starting download...', 'info');
-            document.getElementById('progress').style.display = 'block';
-
-            // Clean up previous torrent
-            if (currentTorrent) {
-                currentTorrent.destroy();
-            }
-
-            client.add(magnetLink, function (torrent) {
-                currentTorrent = torrent;
-                showStatus(`Connected! Downloading "${torrent.name}"`, 'success');
-                
-                document.getElementById('torrentInfo').textContent = `📁 ${torrent.name}`;
-                
-                // Display file list
-                displayFiles(torrent.files);
-                
-                // Update progress
-                const interval = setInterval(function () {
-                    if (torrent.destroyed) {
-                        clearInterval(interval);
-                        return;
-                    }
-
-                    // Update stats
-                    document.getElementById('downloadSpeed').textContent = formatSpeed(torrent.downloadSpeed);
-                    document.getElementById('uploadSpeed').textContent = formatSpeed(torrent.uploadSpeed);
-                    document.getElementById('peers').textContent = torrent.numPeers;
-                    document.getElementById('downloaded').textContent = Math.round(torrent.progress * 100) + '%';
-                    
-                    // Update progress bar
-                    document.getElementById('progressFill').style.width = (torrent.progress * 100) + '%';
-                    
-                    if (torrent.progress === 1) {
-                        showStatus('Download completed! 🎉', 'success');
-                        clearInterval(interval);
-                    }
-                }, 1000);
-
-                // Auto-play first video file
-                const videoFile = torrent.files.find(file => 
-                    file.name.toLowerCase().match(/\.(mp4|webm|ogg|avi|mkv|mov)$/));
-                
-                if (videoFile) {
-                    setTimeout(() => playVideo(videoFile), 2000);
-                }
-            });
-
-            client.on('error', function (err) {
-                showStatus('Error: ' + err.message, 'error');
-                console.error(err);
-            });
-        }
-
-        function displayFiles(files) {
-            const fileList = document.getElementById('fileList');
-            fileList.innerHTML = '<h3>📁 Files in this torrent:</h3>';
-            
-            files.forEach(function (file, index) {
-                const fileItem = document.createElement('div');
-                fileItem.className = 'file-item';
-                
-                const isVideo = file.name.toLowerCase().match(/\.(mp4|webm|ogg|avi|mkv|mov)$/);
-                const isAudio = file.name.toLowerCase().match(/\.(mp3|wav|ogg|flac|aac)$/);
-                
-                fileItem.innerHTML = `
-                    <div class="file-info">
-                        <div class="file-name">${isVideo ? '🎬' : isAudio ? '🎵' : '📄'} ${file.name}</div>
-                        <div class="file-size">${formatBytes(file.length)}</div>
-                    </div>
-                    ${isVideo ? `<button class="btn btn-primary" onclick="playVideo(currentTorrent.files[${index}])">▶️ Play</button>` : ''}
-                    <button class="btn btn-secondary" onclick="downloadFile(currentTorrent.files[${index}])">💾 Download</button>
-                `;
-                
-                fileList.appendChild(fileItem);
-            });
-        }
-
-        function playVideo(file) {
-            const videoContainer = document.getElementById('videoContainer');
-            const video = document.getElementById('videoPlayer');
-            
-            file.renderTo(video, function (err) {
-                if (err) {
-                    showStatus('Error playing video: ' + err.message, 'error');
-                    return;
-                }
-                
-                videoContainer.style.display = 'block';
-                video.scrollIntoView({ behavior: 'smooth' });
-                showStatus(`Playing: ${file.name}`, 'success');
-            });
-        }
-
-        function downloadFile(file) {
-            file.getBlobURL(function (err, url) {
-                if (err) {
-                    showStatus('Error downloading file: ' + err.message, 'error');
-                    return;
-                }
-                
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = file.name;
-                a.click();
-                
-                showStatus(`Downloading: ${file.name}`, 'success');
-            });
-        }
-
         function openInDefaultApp() {
-            magnetLink = extractMagnetFromHash();
+            const hash = extractMagnetFromHash();
             
-            if (!magnetLink) {
+            if (!hash) {
                 showStatus('No magnet link found. Please add a hash or magnet link after # in the URL.', 'error');
                 return;
             }
 
-            // Try to open with default torrent application
+            const magnetLink = `magnet:?xt=urn:btih:${hash}`;
             window.location.href = magnetLink;
             showStatus('Opening in default torrent application...', 'info');
         }
 
         // Auto-start if there's a hash in URL
         window.addEventListener('load', function() {
+            // Load saved server URL
+            const savedServerUrl = localStorage.getItem('peerflixServerUrl');
+            if (savedServerUrl) {
+                peerflixServerUrl = savedServerUrl;
+                document.getElementById('serverUrl').value = savedServerUrl;
+            }
+            
             const hash = window.location.hash.substring(1);
             if (hash) {
                 showStatus('Magnet link detected! Choose an option above to proceed.', 'info');
+                // Auto-show server config if not connected
+                if (!savedServerUrl) {
+                    document.getElementById('serverConfig').style.display = 'block';
+                }
             } else {
                 showStatus('Add a magnet link or hash after # in the URL to get started.', 'info');
             }
@@ -425,7 +747,5 @@
             location.reload();
         });
     </script>
-</body>
-</html>
 </body>
 </html>
