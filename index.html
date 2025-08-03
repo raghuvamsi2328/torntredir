@@ -4,6 +4,7 @@
     <title>Peerflix HLS Player</title>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest/dist/hls.min.js"></script>
     <style>
         body {
@@ -227,7 +228,7 @@
                 <h3>🛠️ Server Configuration</h3>
                 <div style="margin: 15px 0;">
                     <label>Server URL:</label>
-                    <input type="text" id="serverUrl" placeholder="http://192.168.1.19:9050" value="http://192.168.1.19:9050" style="width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px;">
+                    <input type="text" id="serverUrl" placeholder="http://stream.server96.com:9050" value="http://stream.server96.com:9050" style="width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px;">
                 </div>
                 <div style="margin: 15px 0;">
                     <button class="btn btn-primary" onclick="connectToPeerflix()">Connect to Server</button>
@@ -238,13 +239,23 @@
             <div id="setupInstructions" class="setup-instructions" style="display: none;">
                 <h3>📋 Server Setup</h3>
                 <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0;">
-                    <p><strong>Current Server URL:</strong> http://192.168.1.19:9050</p>
+                    <p><strong>Current Server URL:</strong> http://stream.server96.com:9050</p>
                     <p><strong>API Format:</strong> /torrents/torrenthash (returns JSON with file links)</p>
                     <p><strong>M3U Format:</strong> /torrents/torrenthash/files</p>
                     
+                    <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 10px; border-radius: 5px; margin: 10px 0;">
+                        <strong>⚠️ Mixed Content Warning:</strong><br>
+                        If you get "Mixed Content" errors, you need to either:
+                        <ul style="margin: 5px 0; padding-left: 20px;">
+                            <li>Open this page via HTTP (not HTTPS)</li>
+                            <li>Use a local HTTP server: <code>python -m http.server 8000</code></li>
+                            <li>Allow insecure content in your browser settings</li>
+                        </ul>
+                    </div>
+                    
                     <p style="margin-top: 15px;"><strong>How to use:</strong></p>
                     <ol>
-                        <li>Make sure your server is running on 192.168.1.19:9050</li>
+                        <li>Make sure your server is running on stream.server96.com:9050</li>
                         <li>Add a torrent hash after # in the URL</li>
                         <li>Click "Add Torrent & Browse Files" to add torrent to server</li>
                         <li>Get direct file links and M3U playlist URL</li>
@@ -253,9 +264,9 @@
                     
                     <p style="margin-top: 15px;"><strong>Example URLs:</strong></p>
                     <ul style="font-size: 12px;">
-                        <li>Torrent Info: http://192.168.1.19:9050/torrents/[hash]</li>
-                        <li>M3U Playlist: http://192.168.1.19:9050/torrents/[hash]/files</li>
-                        <li>Direct File: http://192.168.1.19:9050/torrents/[hash]/files/[filename]</li>
+                        <li>Torrent Info: http://stream.server96.com:9050/torrents/[hash]</li>
+                        <li>M3U Playlist: http://stream.server96.com:9050/torrents/[hash]/files</li>
+                        <li>Direct File: http://stream.server96.com:9050/torrents/[hash]/files/[filename]</li>
                     </ul>
                 </div>
             </div>
@@ -300,7 +311,7 @@
     <script>
         let hls = null;
         let currentTorrentHash = '';
-        let peerflixServerUrl = 'http://192.168.1.19:9050';
+        let peerflixServerUrl = 'http://stream.server96.com:9050';
         let playlistUrl = '';
 
         function showStatus(message, type = 'info') {
@@ -334,6 +345,25 @@
             setupDiv.style.display = setupDiv.style.display === 'none' ? 'block' : 'none';
         }
 
+        function showMixedContentHelp() {
+            const helpDiv = document.createElement('div');
+            helpDiv.className = 'status error';
+            helpDiv.style.display = 'block';
+            helpDiv.innerHTML = `
+                <strong>🔒 Mixed Content Blocked!</strong><br>
+                <p>Your browser blocked HTTP requests from this HTTPS page. To fix this:</p>
+                <ol>
+                    <li><strong>Serve this page over HTTP:</strong> Open file:// or use a local HTTP server</li>
+                    <li><strong>Use HTTPS server:</strong> Configure your server to use HTTPS</li>
+                    <li><strong>Allow insecure content:</strong> Click the shield icon in your browser's address bar</li>
+                </ol>
+                <p><strong>Quick fix:</strong> Copy this page's URL and replace 'https://' with 'http://' if possible</p>
+            `;
+            
+            const statusDiv = document.getElementById('status');
+            statusDiv.parentNode.insertBefore(helpDiv, statusDiv.nextSibling);
+        }
+
         function connectToPeerflix() {
             const serverUrl = document.getElementById('serverUrl').value.trim();
             if (!serverUrl) {
@@ -355,7 +385,12 @@
                     }
                 })
                 .catch(error => {
-                    showStatus('❌ Failed to connect to server. Make sure it\'s running!', 'error');
+                    if (error.message.includes('Mixed Content') || error.message.includes('blocked')) {
+                        showStatus('❌ Mixed Content Error: Serve this page over HTTP or use HTTPS server', 'error');
+                        showMixedContentHelp();
+                    } else {
+                        showStatus('❌ Failed to connect to server. Make sure it\'s running!', 'error');
+                    }
                     console.error('Connection error:', error);
                 });
         }
@@ -423,7 +458,12 @@
                     displayTorrentFiles(torrentData, torrentData.infoHash || currentTorrentHash);
                 })
                 .catch(error => {
-                    showStatus('Error processing torrent: ' + error.message, 'error');
+                    if (error.message.includes('Mixed Content') || error.message.includes('blocked') || error.name === 'TypeError') {
+                        showStatus('❌ Mixed Content Error: Cannot make HTTP requests from HTTPS page', 'error');
+                        showMixedContentHelp();
+                    } else {
+                        showStatus('Error processing torrent: ' + error.message, 'error');
+                    }
                     console.error('Torrent processing error:', error);
                     
                     // Show basic M3U interface as fallback
