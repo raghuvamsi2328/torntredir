@@ -1,111 +1,1345 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Magnet Link Redirector - Test Page</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 800px;
-            margin: 50px auto;
-            padding: 20px;
-            line-height: 1.6;
-        }
-        .test-link {
-            display: block;
-            margin: 10px 0;
-            padding: 10px;
-            background: #f0f0f0;
-            border-radius: 5px;
-            text-decoration: none;
-            color: #333;
-        }
-        .test-link:hover {
-            background: #e0e0e0;
-        }
-        .info {
-            background: #e6f3ff;
-            padding: 15px;
-            border-radius: 5px;
-            margin: 20px 0;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Stoad — Instant Torrent Streaming & Inspection</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <style>
+    /* 
+      Theme Colors:
+      #F8F8F8 - Base background
+      #F85818 - Primary accent (Heat Orange)
+      #383734 - Main text & architectural lines
+      #EAF3F2 - Light teal background fill
+      #FDDED9 - Soft orange/coral fill
+    */
+    :root {
+      --bg-main: #F8F8F8;
+      --primary: #F85818;
+      --primary-hover: #d8450a;
+      --text-dark: #383734;
+      --text-muted: #6b6a67;
+      --teal-bg: #EAF3F2;
+      --coral-bg: #FDDED9;
+      --card-bg: #FFFFFF;
+      --border-line: rgba(56, 55, 52, 0.2);
+      --font-mono: 'JetBrains Mono', monospace;
+      --font-sans: 'Inter', sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-main);
+      color: var(--text-dark);
+      font-family: var(--font-sans);
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    /* Architectural Layout & Rails */
+    .page {
+      max-width: 900px;
+      margin: 0 auto;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+    }
+
+    .rail {
+      position: relative;
+      padding: 2rem;
+      background-color: var(--bg-main);
+    }
+
+    /* SVG Frames & Corner Junctions */
+    .frame {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      stroke: var(--border-line);
+      stroke-width: 1;
+    }
+
+    .junction {
+      position: absolute;
+      left: 0;
+      width: 100%;
+      height: 21px;
+      pointer-events: none;
+      color: var(--text-dark);
+      stroke: var(--border-line);
+      stroke-width: 1;
+    }
+
+    .junction.top { top: -10px; }
+    .junction.bottom { bottom: -10px; }
+
+    /* Header & Brand Lockup */
+    header.top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1.25rem 2rem;
+      border-bottom: 1px solid var(--border-line);
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .lockup {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      text-decoration: none;
+      color: var(--text-dark);
+      font-weight: 700;
+      font-size: 1.1rem;
+      letter-spacing: -0.02em;
+    }
+
+    .lockup-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 2.15rem;
+      height: 2.15rem;
+      flex-shrink: 0;
+    }
+
+    .lockup-icon .stoad-play-btn {
+      width: 100%;
+      height: 100%;
+    }
+
+    .by {
+      font-weight: 400;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
+    nav {
+      display: flex;
+      gap: 1.2rem;
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      flex-wrap: wrap;
+    }
+
+    nav a {
+      color: var(--text-dark);
+      text-decoration: none;
+      transition: color 0.15s;
+    }
+
+    nav a:hover {
+      color: var(--primary);
+    }
+
+    nav a.pkg {
+      color: var(--text-muted);
+    }
+
+    /* Bands & Content Blocks */
+    .band {
+      margin-bottom: 2.5rem;
+    }
+
+    h1 {
+      font-size: 2.75rem;
+      font-weight: 700;
+      line-height: 1.15;
+      letter-spacing: -0.03em;
+      margin-bottom: 1rem;
+    }
+
+    .heat {
+      color: var(--primary);
+      background: linear-gradient(180deg, transparent 65%, var(--coral-bg) 65%);
+    }
+
+    .lede {
+      font-size: 1.1rem;
+      color: var(--text-muted);
+      max-width: 680px;
+      margin-bottom: 1.5rem;
+    }
+
+    /* Technical Badges */
+    .badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      list-style: none;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+    }
+
+    .badges a {
+      display: flex;
+      border: 1px solid var(--border-line);
+      border-radius: 4px;
+      overflow: hidden;
+      text-decoration: none;
+    }
+
+    .badges .key {
+      background-color: var(--teal-bg);
+      color: var(--text-dark);
+      padding: 0.25rem 0.5rem;
+      border-right: 1px solid var(--border-line);
+      font-weight: 500;
+    }
+
+    .badges .value {
+      background-color: var(--card-bg);
+      color: var(--text-dark);
+      padding: 0.25rem 0.5rem;
+    }
+
+    /* Ad Placeholders */
+    .ad-banner {
+      background-color: #FAFAFA;
+      border: 1px dashed var(--border-line);
+      border-radius: 6px;
+      padding: 0.85rem;
+      text-align: center;
+      margin: 1.5rem 0;
+      position: relative;
+    }
+
+    .ad-tag {
+      position: absolute;
+      top: 4px;
+      right: 8px;
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .ad-content {
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+
+    .ad-inline {
+      min-height: 90px;
+    }
+
+    /* Interactive Drop / Input Area */
+    .drop-zone {
+      background-color: var(--card-bg);
+      border: 1px solid var(--border-line);
+      border-radius: 8px;
+      padding: 2rem;
+      text-align: center;
+      transition: all 0.2s ease;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+    }
+
+    .drop-zone:focus-within {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--coral-bg);
+    }
+
+    .drop-input-group {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 1rem;
+    }
+
+    .drop-input-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      margin-top: 1rem;
+    }
+
+    .config-line {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem 0.9rem;
+      background: var(--teal-bg);
+      border: 1px solid var(--border-line);
+      border-radius: 6px;
+      flex-wrap: wrap;
+    }
+
+    .config-line label {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      color: var(--text-dark);
+    }
+
+    .config-line input {
+      flex: 1;
+      min-width: 220px;
+      padding: 0.65rem 0.8rem;
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      border: 1px solid var(--border-line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--text-dark);
+      outline: none;
+    }
+
+    .config-line input:focus {
+      border-color: var(--primary);
+    }
+
+    .config-meta {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      text-align: left;
+    }
+
+    .config-meta a {
+      color: var(--primary);
+      text-decoration: none;
+    }
+
+    .drop-input-group input {
+      flex: 1;
+      padding: 0.75rem 1rem;
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      border: 1px solid var(--border-line);
+      border-radius: 6px;
+      background: var(--bg-main);
+      color: var(--text-dark);
+      outline: none;
+      min-width: 0;
+    }
+
+    .drop-input-group input:focus {
+      border-color: var(--primary);
+      background: #FFF;
+    }
+
+    .btn-action {
+      background-color: var(--primary);
+      color: #FFF;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 6px;
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.15s;
+      white-space: nowrap;
+    }
+
+    .btn-action:hover {
+      background-color: var(--primary-hover);
+    }
+
+    .samples {
+      margin-top: 1rem;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      line-height: 1.8;
+    }
+
+    .samples button {
+      background: var(--teal-bg);
+      border: 1px solid var(--border-line);
+      color: var(--text-dark);
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      padding: 0.3rem 0.6rem;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-left: 0.25rem;
+      transition: all 0.15s;
+
+    }
+
+    .samples button:hover {
+      background: var(--coral-bg);
+      border-color: var(--primary);
+    }
+
+    /* Result Band & Files Viewer */
+    .result {
+      background: var(--card-bg);
+      border: 1px solid var(--border-line);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .result-bar {
+      display: flex;
+      align-items: center;
+      padding: 0.75rem 1.25rem;
+      background-color: var(--teal-bg);
+      border-bottom: 1px solid var(--border-line);
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .result-bar .spacer { flex: 1; }
+
+    .file-tree {
+      list-style: none;
+    }
+
+    .file-node {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.75rem 1.25rem;
+      border-bottom: 1px solid var(--border-line);
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      gap: 1rem;
+    }
+
+    .file-node:last-child {
+      border-bottom: none;
+    }
+
+    .file-node:hover {
+      background-color: var(--teal-bg);
+    }
+
+    .file-info {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      min-width: 0;
+    }
+
+    .file-name {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .file-size {
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      white-space: nowrap;
+    }
+
+    .file-actions {
+      display: flex;
+      gap: 0.4rem;
+      flex-shrink: 0;
+    }
+
+    .btn-sm {
+      background: var(--card-bg);
+      border: 1px solid var(--border-line);
+      padding: 0.35rem 0.6rem;
+      border-radius: 4px;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .btn-sm:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+
+    /* Preview Output Window */
+    .preview-box {
+      padding: 1.25rem;
+      background: #1E1D1B;
+      color: #F8F8F8;
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      display: none;
+    }
+
+    .preview-box video, .preview-box audio, .preview-box img {
+      width: 100%;
+      max-width: 100%;
+      border-radius: 4px;
+      margin-top: 0.5rem;
+    }
+
+    /* Definition Lists / Facts */
+    dl.facts, dl.installs {
+      display: grid;
+      grid-template-columns: 140px 1fr;
+      gap: 1rem 1.5rem;
+      font-size: 0.9rem;
+    }
+
+    dt {
+      font-family: var(--font-mono);
+      font-weight: 600;
+      color: var(--text-dark);
+    }
+
+    dd {
+      color: var(--text-muted);
+      overflow-x: auto;
+    }
+
+    code.cmd {
+      font-family: var(--font-mono);
+      background: var(--teal-bg);
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      color: var(--text-dark);
+      border: 1px solid var(--border-line);
+      display: inline-block;
+      max-width: 100%;
+      overflow-x: auto;
+      vertical-align: middle;
+    }
+
+    .dollar {
+      color: var(--primary);
+      font-family: var(--font-mono);
+      margin-right: 0.4rem;
+    }
+
+    /* Footer Rail */
+    footer.rail {
+      margin-top: auto;
+      border-top: 1px solid var(--border-line);
+      padding: 1.25rem 2rem;
+      display: flex;
+      gap: 1.5rem;
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      flex-wrap: wrap;
+    }
+
+    footer a {
+      color: var(--text-dark);
+      text-decoration: none;
+    }
+
+    footer a:hover {
+      color: var(--primary);
+    }
+
+    /* ==========================================================================
+       Responsive Breakpoints (Tablets & Mobile)
+       ========================================================================== */
+
+    @media (max-width: 768px) {
+      .rail {
+        padding: 1.25rem;
+      }
+
+      header.top {
+        padding: 1rem 1.25rem;
+      }
+
+      h1 {
+        font-size: 2rem;
+      }
+
+      .lede {
+        font-size: 1rem;
+      }
+
+      dl.facts, dl.installs {
+        grid-template-columns: 1fr;
+        gap: 0.3rem 0;
+      }
+
+      dl.facts dt, dl.installs dt {
+        margin-top: 0.8rem;
+      }
+
+      dl.facts dt:first-child, dl.installs dt:first-child {
+        margin-top: 0;
+      }
+
+      .ad-banner {
+        padding: 1.25rem 0.75rem 0.75rem;
+      }
+
+      .ad-content {
+        font-size: 0.75rem;
+      }
+    }
+
+    @media (max-width: 480px) {
+      header.top {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .lockup-icon {
+        width: 1.9rem;
+        height: 1.9rem;
+      }
+
+      nav {
+        gap: 0.8rem;
+      }
+
+      h1 {
+        font-size: 1.65rem;
+      }
+
+      .drop-zone {
+        padding: 1.25rem 0.85rem;
+      }
+
+      .drop-input-group {
+        flex-direction: column;
+      }
+
+      .config-line {
+        align-items: stretch;
+      }
+
+      .config-line input {
+        min-width: 0;
+        width: 100%;
+      }
+
+      .btn-action {
+        width: 100%;
+        padding: 0.85rem;
+      }
+
+      .file-node {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+      }
+
+      .file-info {
+        width: 100%;
+      }
+
+      .file-actions {
+        width: 100%;
+        justify-content: flex-end;
+      }
+
+      footer.rail {
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+    }
+  </style>
 </head>
 <body>
-    <h1>Magnet Link Redirector - Test Page</h1>
+
+  <div class="page">
     
-    <div class="info">
-        <strong>How to test:</strong><br>
-        Click on any of the test links below. You'll get a player selection modal with options based on your OS:
-        <ul>
-            <li><strong>Android:</strong> Web players + Default torrent app option</li>
-            <li><strong>iOS:</strong> Web players only</li>
-            <li><strong>Other platforms:</strong> Web players available</li>
+    <!-- Top Header Rail -->
+    <header class="top rail">
+      <svg class="frame" aria-hidden="true">
+        <line x1="0.5" y1="0" x2="0.5" y2="100%"></line>
+        <line x1="100%" y1="0" x2="100%" y2="100%" transform="translate(-0.5 0)"></line>
+      </svg>
+      <a class="lockup" href="#">
+        <span class="lockup-icon" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100" class="stoad-play-btn">
+            <defs>
+              <style>
+                .stoad-play-btn {
+                  cursor: pointer;
+                  overflow: visible;
+                }
+
+                .chev-back,
+                .chev-front {
+                  stroke-width: 6;
+                  stroke-linejoin: round;
+                  fill: none;
+                  transform-box: fill-box;
+                  transform-origin: center;
+                  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), stroke 0.2s ease;
+                }
+
+                .chev-back { stroke: #F85818; }
+                .chev-front { stroke: #383734; }
+
+                .stoad-play-btn:hover .chev-back {
+                  transform: translateX(-2px);
+                  stroke: #d8450a;
+                }
+
+                .stoad-play-btn:hover .chev-front {
+                  transform: translateX(4px);
+                  stroke: #F85818;
+                }
+              </style>
+            </defs>
+            <g>
+              <polygon class="chev-back" points="26,26 58,50 26,74" />
+              <polygon class="chev-front" points="38,26 70,50 38,74" />
+            </g>
+          </svg>
+        </span>
+        <span class="wordmark">stoad <span class="by">by server96</span></span>
+      </a>
+      <!-- <nav>
+        <a href="https://github.com">GitHub</a>
+        <a class="pkg" href="#">npm</a>
+        <a class="pkg" href="#">crates.io</a>
+        <a class="pkg" href="#">PyPI</a>
+      </nav> -->
+    </header>
+
+    <!-- Top Advert Placeholder -->
+    <div class="ad-banner" id="ad-top">
+      <span class="ad-tag">Advertisement</span>
+      <div class="ad-content">
+        <span>⚡ High-Speed Wireguard VPN — 70% Off for Stoad Users</span>
+      </div>
+    </div>
+
+    <!-- Main Rail Container -->
+    <main class="rail">
+      
+      <svg class="frame" aria-hidden="true">
+        <line x1="0.5" y1="0" x2="0.5" y2="100%"></line>
+        <line x1="100%" y1="0" x2="100%" y2="100%" transform="translate(-0.5 0)"></line>
+      </svg>
+
+      <!-- Junction SVGs -->
+      <svg class="junction top" aria-hidden="true">
+        <line x1="0" y1="10.5" x2="100%" y2="10.5"></line>
+        <path d="M4 0H11V7H10C10 3.68629 7.31371 1 4 1V0Z" fill="currentColor" transform="rotate(180 5.5 5.5)"></path>
+        <path d="M4 0H11V7H10C10 3.68629 7.31371 1 4 1V0Z" fill="currentColor" transform="translate(0 10) rotate(-90 5.5 5.5)"></path>
+        <svg x="100%" overflow="visible">
+          <path d="M4 0H11V7H10C10 3.68629 7.31371 1 4 1V0Z" fill="currentColor" transform="translate(-11 0) rotate(90 5.5 5.5)"></path>
+          <path d="M4 0H11V7H10C10 3.68629 7.31371 1 4 1V0Z" fill="currentColor" transform="translate(-11 10)"></path>
+        </svg>
+      </svg>
+
+      <!-- Hero Section -->
+      <section class="band">
+        <h1>Any magnet in.<br><span class="heat">Media stream out.</span></h1>
+        <p class="lede">
+          In-browser WebTorrent client that inspects magnet links, builds direct file trees, and streams audio, video, and documents instantly. <strong>Files stream peer-to-peer directly in your browser window</strong>.
+        </p>
+
+        <ul class="badges">
+          <li>
+            <a href="#">
+              <span class="key">crates.io</span><span class="value">stoad-rs</span>
+            </a>
+          </li>
+          <li>
+            <a href="#">
+              <span class="key">npm</span><span class="value">@stoad/core</span>
+            </a>
+          </li>
+          <li>
+            <a href="#">
+              <span class="key">PyPI</span><span class="value">stoad-python</span>
+            </a>
+          </li>
+          <li>
+            <a href="#">
+              <span class="key">license</span><span class="value">MIT</span>
+            </a>
+          </li>
         </ul>
-    </div>
+      </section>
 
-    <h2>Test Links:</h2>
-    
-    <h3>1. Test with Info Hash Only:</h3>
-    <a href="index.html#1234567890abcdef1234567890abcdef12345678" class="test-link">
-        Test Info Hash: 1234567890abcdef1234567890abcdef12345678
-    </a>
-    
-    <h3>2. Test with Full Magnet Link:</h3>
-    <a href="index.html#magnet:?xt=urn:btih:1234567890abcdef1234567890abcdef12345678&dn=test" class="test-link">
-        Test Full Magnet Link
-    </a>
-    
-    <h3>3. Test with Real Torrent (Ubuntu ISO):</h3>
-    <a href="index.html#2257c0b3da3c1e7e75d4b2fcb547e78cb6b0e4bc" class="test-link">
-        Ubuntu 22.04.3 LTS (Real torrent for testing)
-    </a>
-    
-    <h3>4. Test with Slashes (to check triple slash fix):</h3>
-    <a href="index.html#///1234567890abcdef1234567890abcdef12345678" class="test-link">
-        Test with Leading Slashes: ///1234567890abcdef1234567890abcdef12345678
-    </a>
+      <!-- Input Drop Area -->
+      <section class="band">
+        <div class="drop-zone">
+          <span style="font-family: var(--font-mono); font-weight: 600; display: block; font-size: 1.05rem;">Paste a torrent magnet link</span>
+          <span style="color: var(--text-muted); font-size: 0.85rem; display: block; margin-top: 0.2rem;">Point the UI at your streaming API, then submit a magnet link for live torrent inspection.</span>
 
-    <h3>5. Test with Force Selection:</h3>
-    <a href="index.html?select=true#1234567890abcdef1234567890abcdef12345678" class="test-link">
-        Test Force Player Selection: 1234567890abcdef1234567890abcdef12345678
-    </a>
-    
-    <h3>6. Test Android Default App (if on Android):</h3>
-    <a href="index.html#2257c0b3da3c1e7e75d4b2fcb547e78cb6b0e4bc" class="test-link">
-        Test Android Default Option (Select "Default App" if available)
-    </a>
+          <div class="drop-input-stack">
+            <div class="config-line">
+              <label for="api-base-input">API Server</label>
+              <input type="text" id="api-base-input" placeholder="https://play.server96.com" />
+              <button class="btn-sm" id="save-api-btn" type="button">Save</button>
+            </div>
 
-    <h2>Manual Testing:</h2>
-    <p>You can also manually test by opening <code>index.html</code> and adding hash values to the URL:</p>
-    <ul>
-        <li><code>index.html#1234567890abcdef1234567890abcdef12345678</code></li>
-        <li><code>index.html#magnet:?xt=urn:btih:1234567890abcdef1234567890abcdef12345678</code></li>
-    </ul>
+            <div class="config-meta" id="api-config-note">
+              Use your HTTPS backend URL for GitHub Pages deployments. Example: https://play.server96.com
+            </div>
 
-    <h2>Debug Information:</h2>
-    <div id="debug-info">
-        <p><strong>Your OS:</strong> <span id="detected-os"></span></p>
-        <p><strong>User Agent:</strong> <span id="user-agent"></span></p>
-    </div>
+            <div class="drop-input-group">
+              <input type="text" id="magnet-input" placeholder="magnet:?xt=urn:btih:..." />
+              <button class="btn-action" id="fetch-btn">Parse Magnet</button>
+            </div>
+          </div>
+        </div>
 
-    <script>
-        // Debug information
-        function detectOS() {
-            var userAgent = navigator.userAgent || navigator.vendor || window.opera;
-            
-            if (/iPad|iPhone|iPod/.test(userAgent) && !window.MSStream) {
-                return 'iOS';
-            }
-            
-            if (/Mac|Macintosh/.test(userAgent)) {
-                return 'macOS';
-            }
-            
-            return 'other';
+        <p class="samples">
+          No magnet link at hand? Try a sample swarm:
+          <button id="sample-video">sintel_1080p.mkv</button>
+          <button id="sample-audio">cosmic_synth.flac</button>
+        </p>
+      </section>
+
+      <!-- In-Feed Ad Placeholder -->
+      <div class="ad-banner ad-inline" id="ad-mid">
+        <span class="ad-tag">Sponsor Ad</span>
+        <div class="ad-content">
+          <span>🚀 Upgrade to Stoad Pro for Unlimited Remote Cloud Caching & Debrid Integration</span>
+        </div>
+      </div>
+
+      <!-- Results File Tree -->
+      <section class="band result" id="result-box" style="display: none;">
+        <div class="result-bar">
+          <span id="result-name">Sintel.2010.1080p.mkv</span>
+          <span class="spacer"></span>
+          <span id="result-stats" style="color: var(--text-muted);">4 files · 648.2 MB · 42 Seeders</span>
+        </div>
+
+        <ul class="file-tree" id="file-tree">
+          <!-- Injected dynamically via JS -->
+        </ul>
+
+        <div class="preview-box" id="preview-box">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+            <span id="preview-title" style="color: var(--primary); font-weight: 600;">&gt;_ Stream Preview</span>
+            <button class="btn-sm" id="close-preview" style="background:#000; color:#fff;">Close [X]</button>
+          </div>
+          <div id="media-viewport"></div>
+        </div>
+      </section>
+
+      <!-- Technical Architecture Info -->
+      <section class="band">
+        <h2 style="font-size: 1.35rem; margin-bottom: 1rem;">Architecture</h2>
+        <dl class="facts">
+          <dt>Swarm Engine</dt>
+          <dd>
+            <strong>Direct WebRTC peer connections</strong> eliminate central proxy bottlenecks. Files are requested block-by-block and stored in IndexedDB temporary buffers.
+          </dd>
+
+          <dt>Media Inspection</dt>
+          <dd>
+            Header frames are read selectively first. Streamable containers (.mp4, .mkv, .mp3) play immediately while remaining blocks load in the background.
+          </dd>
+
+          <dt>Local Privacy</dt>
+          <dd>
+            Zero server uploads. Magnet metadata and file structures are calculated locally using WebAssembly rust-bencode modules.
+          </dd>
+        </dl>
+      </section>
+
+      <!-- Terminal / Install Band -->
+      <section class="band">
+        <h2 style="font-size: 1.35rem; margin-bottom: 1rem;">CLI Installation</h2>
+        <dl class="installs">
+          <dt>Rust</dt>
+          <dd><span class="dollar">$</span><code class="cmd">cargo install stoad-cli</code></dd>
+          
+          <dt>Node.js</dt>
+          <dd><span class="dollar">$</span><code class="cmd">npm install -g @stoad/cli</code></dd>
+
+          <dt>CLI Stream</dt>
+          <dd><span class="dollar">$</span><code class="cmd">stoad "magnet:?xt=urn:btih:..." --vlc</code></dd>
+        </dl>
+      </section>
+
+      <!-- Bottom Junction -->
+      <svg class="junction bottom" aria-hidden="true">
+        <line x1="0" y1="10.5" x2="100%" y2="10.5"></line>
+        <path d="M4 0H11V7H10C10 3.68629 7.31371 1 4 1V0Z" fill="currentColor" transform="rotate(180 5.5 5.5)"></path>
+        <path d="M4 0H11V7H10C10 3.68629 7.31371 1 4 1V0Z" fill="currentColor" transform="translate(0 10) rotate(-90 5.5 5.5)"></path>
+        <svg x="100%" overflow="visible">
+          <path d="M4 0H11V7H10C10 3.68629 7.31371 1 4 1V0Z" fill="currentColor" transform="translate(-11 0) rotate(90 5.5 5.5)"></path>
+          <path d="M4 0H11V7H10C10 3.68629 7.31371 1 4 1V0Z" fill="currentColor" transform="translate(-11 10)"></path>
+        </svg>
+      </svg>
+
+    </main>
+
+    <!-- Footer Rail -->
+    <footer class="rail">
+      <svg class="frame" aria-hidden="true">
+        <line x1="0.5" y1="0" x2="0.5" y2="100%"></line>
+        <line x1="100%" y1="0" x2="100%" y2="100%" transform="translate(-0.5 0)"></line>
+      </svg>
+      <span>MIT License</span>
+      <a href="#">Source Code</a>
+      <a href="#">Bug Tracker</a>
+      <a href="#">Built with Rust & WebAssembly</a>
+    </footer>
+
+  </div>
+
+      <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.20/dist/hls.min.js"></script>
+
+  <!-- Interactive JavaScript Logic -->
+  <script>
+        const DEFAULT_API_BASE_URL = window.STOAD_API_BASE || 'https://localhost:6991';
+    const fetchBtn = document.getElementById('fetch-btn');
+    const magnetInput = document.getElementById('magnet-input');
+    const resultBox = document.getElementById('result-box');
+    const fileTree = document.getElementById('file-tree');
+    const previewBox = document.getElementById('preview-box');
+    const mediaViewport = document.getElementById('media-viewport');
+    const closePreview = document.getElementById('close-preview');
+      const apiBaseInput = document.getElementById('api-base-input');
+      const saveApiBtn = document.getElementById('save-api-btn');
+      const apiConfigNote = document.getElementById('api-config-note');
+
+        let currentTorrentId = null;
+        let currentTorrent = null;
+        let pollTimer = null;
+        let activeHls = null;
+        let apiBaseUrl = localStorage.getItem('stoadApiBaseUrl') || DEFAULT_API_BASE_URL;
+
+        function formatBytes(bytes) {
+          if (!Number.isFinite(bytes) || bytes <= 0) {
+            return 'Unknown size';
+          }
+
+          const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+          let value = bytes;
+          let unitIndex = 0;
+
+          while (value >= 1024 && unitIndex < units.length - 1) {
+            value /= 1024;
+            unitIndex += 1;
+          }
+
+          const rounded = value >= 100 || unitIndex === 0 ? value.toFixed(0) : value.toFixed(1);
+          return `${rounded} ${units[unitIndex]}`;
+    }
+
+        function normalizeApiBaseUrl(value) {
+          return (value || '').trim().replace(/\/$/, '');
         }
 
-        document.getElementById('detected-os').textContent = detectOS();
-        document.getElementById('user-agent').textContent = navigator.userAgent;
-    </script>
+        function setApiNote(message, isWarning) {
+          apiConfigNote.textContent = message;
+          apiConfigNote.style.color = isWarning ? 'var(--primary-hover)' : 'var(--text-muted)';
+        }
+
+        function checkMixedContentRisk(baseUrl) {
+          if (window.location.protocol !== 'https:') {
+            return null;
+          }
+
+          try {
+            const target = new URL(baseUrl);
+            if (target.protocol === 'http:' && target.hostname !== 'localhost' && target.hostname !== '127.0.0.1') {
+              return 'This page is running over HTTPS. Use an HTTPS API URL or the browser will block the requests.';
+            }
+          } catch (error) {
+            return 'Enter a full API URL including http:// or https://.';
+          }
+
+          return null;
+        }
+
+        function applyApiBaseUrl(value, options = {}) {
+          const normalized = normalizeApiBaseUrl(value);
+          if (!normalized) {
+            throw new Error('API server URL is required.');
+          }
+
+          const warning = checkMixedContentRisk(normalized);
+          apiBaseUrl = normalized;
+          apiBaseInput.value = normalized;
+          localStorage.setItem('stoadApiBaseUrl', normalized);
+          setApiNote(warning || 'API server saved. This URL will be reused on the next visit.', Boolean(warning));
+
+          if (!options.silent && warning) {
+            alert(warning);
+          }
+        }
+
+        function normalizeMagnetInput(value) {
+          const trimmed = (value || '').trim();
+          if (!trimmed) {
+            return '';
+          }
+
+          if (trimmed.startsWith('magnet:')) {
+            return trimmed;
+          }
+
+          if (/^[a-fA-F0-9]{40}$/.test(trimmed)) {
+            return `magnet:?xt=urn:btih:${trimmed.toLowerCase()}`;
+          }
+
+          return trimmed;
+        }
+
+        function getMagnetFromLocation() {
+          const params = new URLSearchParams(window.location.search);
+          const directValue = params.get('magnet') || params.get('magnet_link') || params.get('link') || params.get('url');
+          if (directValue) {
+            return normalizeMagnetInput(directValue);
+          }
+
+          const hashValue = params.get('hash') || params.get('infohash') || params.get('info_hash');
+          if (hashValue) {
+            return normalizeMagnetInput(hashValue);
+          }
+
+          const fragment = window.location.hash.replace(/^#/, '').trim();
+          if (fragment) {
+            return normalizeMagnetInput(decodeURIComponent(fragment));
+          }
+
+          return '';
+        }
+
+        function syncMagnetInputFromLocation() {
+          const locationMagnet = getMagnetFromLocation();
+          if (locationMagnet) {
+            magnetInput.value = locationMagnet;
+          }
+        }
+
+        function getTorrentStreamUrl(torrent) {
+          return torrent.stream_url || `${apiBaseUrl}/api/v1/torrents/${torrent.id}/stream.m3u8`;
+        }
+
+        function getTorrentPlaylistUrl(torrent) {
+          return torrent.playlist_url || `${apiBaseUrl}/api/v1/torrents/${torrent.id}/playlist.m3u`;
+        }
+
+        function getFileStreamUrl(torrentId, file) {
+          return file.stream_url || `${apiBaseUrl}/api/stream/${torrentId}?file_index=${file.index}`;
+        }
+
+        function getFilePlaylistUrl(torrentId, file) {
+          return file.playlist_url || `${apiBaseUrl}/api/v1/torrents/${torrentId}/playlist.m3u?file_index=${file.index}`;
+        }
+
+        function getDownloadUrl(torrentId, file) {
+          return file.download_url || `${apiBaseUrl}/api/stream/${torrentId}/download/${file.index}`;
+        }
+
+        function getDefaultFile(torrent) {
+          if (!torrent || !Array.isArray(torrent.files) || torrent.files.length === 0) {
+            return null;
+          }
+
+          return torrent.default_file
+            || torrent.files.find(file => file.is_default_stream)
+            || torrent.files[0];
+        }
+
+        function inferFileType(file) {
+          if (file.is_video) {
+            return 'video';
+          }
+
+          const fileName = (file.name || '').toLowerCase();
+          if (/\.(mp3|flac|wav|ogg|m4a|aac)$/i.test(fileName)) {
+            return 'audio';
+          }
+          if (/\.(png|jpe?g|gif|webp|avif|svg)$/i.test(fileName)) {
+            return 'image';
+          }
+          if (/\.(mp4|mkv|webm|mov|m3u8)$/i.test(fileName)) {
+            return 'video';
+          }
+          return 'file';
+        }
+
+        function getPreviewUrl(torrentId, torrent, file, fileType) {
+          if (fileType === 'video' || file.stream_mode === 'hls') {
+            return getFilePlaylistUrl(torrentId, file)
+              || getTorrentPlaylistUrl(torrent)
+              || getTorrentStreamUrl(torrent);
+          }
+
+          return getFileStreamUrl(torrentId, file);
+        }
+
+        function fileIcon(fileType) {
+          if (fileType === 'video') {
+            return '🎬';
+          }
+          if (fileType === 'audio') {
+            return '🎵';
+          }
+          if (fileType === 'image') {
+            return '🖼️';
+          }
+          return '📄';
+        }
+
+        function destroyPlayer() {
+          if (activeHls) {
+            activeHls.destroy();
+            activeHls = null;
+          }
+        }
+
+        function setLoadingState(isLoading, label) {
+          fetchBtn.disabled = isLoading;
+          fetchBtn.textContent = isLoading ? label : 'Parse Magnet';
+        }
+
+        function updateResultHeader(torrent) {
+          const fileCount = Array.isArray(torrent.files) ? torrent.files.length : 0;
+          const totalBytes = (torrent.files || []).reduce((sum, file) => sum + (file.length || file.size || 0), 0);
+          const progress = typeof torrent.progress === 'number' ? `${torrent.progress.toFixed(1)}%` : '0.0%';
+          const status = torrent.status || 'downloading';
+
+          document.getElementById('result-name').textContent = torrent.name || torrent.info_hash || torrent.id;
+          document.getElementById('result-stats').textContent = `${fileCount} files · ${formatBytes(totalBytes)} · ${status} · ${progress}`;
+        }
+
+        function renderFiles(torrent) {
+          fileTree.innerHTML = '';
+
+          (torrent.files || []).forEach(file => {
+            const fileType = inferFileType(file);
+            const isDefault = file.is_default_stream;
+            const li = document.createElement('li');
+            li.className = 'file-node';
+            li.innerHTML = `
+              <div class="file-info">
+                <span>${fileIcon(fileType)}</span>
+                <span class="file-name" title="${file.name}">${file.name}</span>
+                <span class="file-size">${formatBytes(file.length || file.size || 0)}</span>
+                ${isDefault ? '<span class="file-size">default</span>' : ''}
+              </div>
+              <div class="file-actions">
+                <button class="btn-sm" data-action="stream" data-file-index="${file.index}">Open</button>
+                <button class="btn-sm" data-action="playlist" data-file-index="${file.index}">Playlist</button>
+                <button class="btn-sm" data-action="download" data-file-index="${file.index}">Download</button>
+              </div>
+            `;
+            fileTree.appendChild(li);
+          });
+        }
+
+        function showTorrent(torrent) {
+          currentTorrentId = torrent.id || torrent.info_hash || torrent.infoHash;
+          currentTorrent = torrent;
+          resultBox.style.display = 'block';
+          updateResultHeader(torrent);
+          renderFiles(torrent);
+          resultBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        async function apiRequest(path, options = {}) {
+          const response = await fetch(`${apiBaseUrl}${path}`, {
+            ...options,
+            headers: {
+              'Content-Type': 'application/json',
+              ...(options.headers || {})
+            }
+          });
+
+          if (!response.ok) {
+            let detail = `Request failed with status ${response.status}`;
+            try {
+              const data = await response.json();
+              detail = data.detail || detail;
+            } catch (error) {
+              // Ignore JSON parsing failures and fall back to generic status text.
+            }
+            throw new Error(detail);
+          }
+
+          return response.json();
+        }
+
+        async function pollTorrent(torrentId) {
+          try {
+            const torrent = await apiRequest(`/api/v1/torrents/${torrentId}`);
+            showTorrent(torrent);
+
+            if (torrent.status === 'error' || torrent.status === 'removed') {
+              clearInterval(pollTimer);
+              pollTimer = null;
+            }
+          } catch (error) {
+            clearInterval(pollTimer);
+            pollTimer = null;
+            document.getElementById('result-stats').textContent = error.message;
+          }
+        }
+
+        async function addTorrent(magnet) {
+          setLoadingState(true, 'Parsing Swarm...');
+
+          try {
+            applyApiBaseUrl(apiBaseInput.value || apiBaseUrl, { silent: true });
+            const torrent = await apiRequest('/api/v1/torrents', {
+              method: 'POST',
+              body: JSON.stringify({ magnet })
+            });
+
+            showTorrent(torrent);
+
+            if (pollTimer) {
+              clearInterval(pollTimer);
+            }
+            pollTimer = setInterval(() => pollTorrent(currentTorrentId), 2500);
+          } catch (error) {
+            alert(`Unable to add torrent: ${error.message}`);
+          } finally {
+            setLoadingState(false);
+          }
+        }
+
+        saveApiBtn.addEventListener('click', () => {
+          try {
+            applyApiBaseUrl(apiBaseInput.value);
+          } catch (error) {
+            alert(error.message);
+          }
+        });
+
+        apiBaseInput.addEventListener('keydown', event => {
+          if (event.key === 'Enter') {
+            event.preventDefault();
+            saveApiBtn.click();
+          }
+        });
+
+        function attachHls(video, sourceUrl, fallbackUrl) {
+          destroyPlayer();
+
+          if (window.Hls && window.Hls.isSupported()) {
+            activeHls = new window.Hls();
+            activeHls.loadSource(sourceUrl);
+            activeHls.attachMedia(video);
+            activeHls.on(window.Hls.Events.ERROR, (_event, data) => {
+              if (data && data.fatal) {
+                destroyPlayer();
+                if (fallbackUrl && fallbackUrl !== sourceUrl) {
+                  video.src = fallbackUrl;
+                  video.load();
+                }
+              }
+            });
+            return;
+          }
+
+          video.src = fallbackUrl || sourceUrl;
+        }
+
+        function streamFile(name, type, url, fallbackUrl) {
+          previewBox.style.display = 'block';
+          mediaViewport.innerHTML = '';
+
+          if (type === 'video') {
+            mediaViewport.innerHTML = '<video controls autoplay playsinline></video>';
+            const video = mediaViewport.querySelector('video');
+            attachHls(video, url, fallbackUrl);
+          } else if (type === 'audio') {
+            mediaViewport.innerHTML = `<audio src="${url}" controls autoplay style="width:100%; margin-top:1rem;"></audio>`;
+          } else if (type === 'image') {
+            mediaViewport.innerHTML = `<img src="${url}" alt="preview" />`;
+          } else {
+            mediaViewport.innerHTML = `<div style="color:#F8F8F8; line-height:1.7;">No inline preview available for <strong>${name}</strong>.<br><a href="${url}" target="_blank" rel="noopener noreferrer" style="color:#F85818;">Open file in new tab</a></div>`;
+          }
+        }
+
+        fetchBtn.addEventListener('click', async () => {
+          const magnet = magnetInput.value.trim();
+          if (!magnet) {
+            alert('Please enter a valid magnet URL.');
+            return;
+          }
+
+          await addTorrent(magnet);
+        });
+
+        magnetInput.addEventListener('keydown', async event => {
+          if (event.key === 'Enter') {
+            event.preventDefault();
+            fetchBtn.click();
+          }
+        });
+
+        document.getElementById('sample-video').addEventListener('click', async () => {
+          magnetInput.value = 'magnet:?xt=urn:btih:08ada5a7a6183aae1e09d831df6748d566095a10&dn=Sintel';
+          await addTorrent(magnetInput.value);
+        });
+
+        document.getElementById('sample-audio').addEventListener('click', async () => {
+          magnetInput.value = 'magnet:?xt=urn:btih:2c26b46b68ffc68ff99b453c1d30413413422d70&dn=CosmicSynth';
+          await addTorrent(magnetInput.value);
+        });
+
+        fileTree.addEventListener('click', async event => {
+          const button = event.target.closest('button[data-action]');
+          if (!button || !currentTorrentId) {
+            return;
+          }
+
+          const fileIndex = button.dataset.fileIndex;
+          const torrent = await apiRequest(`/api/v1/torrents/${currentTorrentId}`);
+          const file = (torrent.files || []).find(entry => String(entry.index) === fileIndex);
+          if (!file) {
+            alert('File metadata is no longer available for this torrent.');
+            return;
+          }
+
+          if (button.dataset.action === 'download') {
+            window.open(getDownloadUrl(currentTorrentId, file), '_blank', 'noopener');
+            return;
+          }
+
+          if (button.dataset.action === 'playlist') {
+            window.open(getFilePlaylistUrl(currentTorrentId, file), '_blank', 'noopener');
+            return;
+          }
+
+          const fileType = inferFileType(file);
+          const streamUrl = getPreviewUrl(currentTorrentId, torrent, file, fileType);
+          const fallbackUrl = getFileStreamUrl(currentTorrentId, file);
+
+          streamFile(file.name, fileType, streamUrl, fallbackUrl);
+        });
+
+    closePreview.addEventListener('click', () => {
+          destroyPlayer();
+      previewBox.style.display = 'none';
+      mediaViewport.innerHTML = '';
+    });
+
+        try {
+          applyApiBaseUrl(apiBaseUrl, { silent: true });
+        } catch (error) {
+          apiBaseInput.value = DEFAULT_API_BASE_URL;
+          setApiNote(error.message, true);
+        }
+
+        syncMagnetInputFromLocation();
+
+        window.addEventListener('hashchange', () => {
+          syncMagnetInputFromLocation();
+        });
+  </script>
 </body>
 </html>
