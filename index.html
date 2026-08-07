@@ -898,7 +898,7 @@
 
   <!-- Interactive JavaScript Logic -->
   <script>
-        const DEFAULT_API_BASE_URL = window.STOAD_API_BASE || 'http://localhost:6991';
+        const DEFAULT_API_BASE_URL = window.STOAD_API_BASE || 'https://localhost:6991';
     const fetchBtn = document.getElementById('fetch-btn');
     const magnetInput = document.getElementById('magnet-input');
     const resultBox = document.getElementById('result-box');
@@ -911,6 +911,7 @@
       const apiConfigNote = document.getElementById('api-config-note');
 
         let currentTorrentId = null;
+        let currentTorrent = null;
         let pollTimer = null;
         let activeHls = null;
         let apiBaseUrl = localStorage.getItem('stoadApiBaseUrl') || DEFAULT_API_BASE_URL;
@@ -1024,12 +1025,30 @@
           return torrent.stream_url || `${apiBaseUrl}/api/v1/torrents/${torrent.id}/stream.m3u8`;
         }
 
+        function getTorrentPlaylistUrl(torrent) {
+          return torrent.playlist_url || `${apiBaseUrl}/api/v1/torrents/${torrent.id}/playlist.m3u`;
+        }
+
         function getFileStreamUrl(torrentId, file) {
           return file.stream_url || `${apiBaseUrl}/api/stream/${torrentId}?file_index=${file.index}`;
         }
 
-        function getDownloadUrl(torrentId, fileIndex) {
-          return `${apiBaseUrl}/api/stream/${torrentId}/download/${fileIndex}`;
+        function getFilePlaylistUrl(torrentId, file) {
+          return file.playlist_url || `${apiBaseUrl}/api/v1/torrents/${torrentId}/playlist.m3u?file_index=${file.index}`;
+        }
+
+        function getDownloadUrl(torrentId, file) {
+          return file.download_url || `${apiBaseUrl}/api/stream/${torrentId}/download/${file.index}`;
+        }
+
+        function getDefaultFile(torrent) {
+          if (!torrent || !Array.isArray(torrent.files) || torrent.files.length === 0) {
+            return null;
+          }
+
+          return torrent.default_file
+            || torrent.files.find(file => file.is_default_stream)
+            || torrent.files[0];
         }
 
         function inferFileType(file) {
@@ -1090,6 +1109,7 @@
 
           (torrent.files || []).forEach(file => {
             const fileType = inferFileType(file);
+            const isDefault = file.is_default_stream;
             const li = document.createElement('li');
             li.className = 'file-node';
             li.innerHTML = `
@@ -1097,9 +1117,11 @@
                 <span>${fileIcon(fileType)}</span>
                 <span class="file-name" title="${file.name}">${file.name}</span>
                 <span class="file-size">${formatBytes(file.length || file.size || 0)}</span>
+                ${isDefault ? '<span class="file-size">default</span>' : ''}
               </div>
               <div class="file-actions">
                 <button class="btn-sm" data-action="stream" data-file-index="${file.index}">Open</button>
+                <button class="btn-sm" data-action="playlist" data-file-index="${file.index}">Playlist</button>
                 <button class="btn-sm" data-action="download" data-file-index="${file.index}">Download</button>
               </div>
             `;
@@ -1109,6 +1131,7 @@
 
         function showTorrent(torrent) {
           currentTorrentId = torrent.id || torrent.info_hash || torrent.infoHash;
+          currentTorrent = torrent;
           resultBox.style.display = 'block';
           updateResultHeader(torrent);
           renderFiles(torrent);
@@ -1206,20 +1229,20 @@
         }
 
         function streamFile(name, type, url) {
-      previewBox.style.display = 'block';
-      mediaViewport.innerHTML = '';
+          previewBox.style.display = 'block';
+          mediaViewport.innerHTML = '';
 
-      if (type === 'video') {
+          if (type === 'video') {
             mediaViewport.innerHTML = '<video controls autoplay playsinline></video>';
             const video = mediaViewport.querySelector('video');
             attachHls(video, url);
-      } else if (type === 'audio') {
-        mediaViewport.innerHTML = `<audio src="${url}" controls autoplay style="width:100%; margin-top:1rem;"></audio>`;
-      } else if (type === 'image') {
-        mediaViewport.innerHTML = `<img src="${url}" alt="preview" />`;
+          } else if (type === 'audio') {
+            mediaViewport.innerHTML = `<audio src="${url}" controls autoplay style="width:100%; margin-top:1rem;"></audio>`;
+          } else if (type === 'image') {
+            mediaViewport.innerHTML = `<img src="${url}" alt="preview" />`;
           } else {
             mediaViewport.innerHTML = `<div style="color:#F8F8F8; line-height:1.7;">No inline preview available for <strong>${name}</strong>.<br><a href="${url}" target="_blank" rel="noopener noreferrer" style="color:#F85818;">Open file in new tab</a></div>`;
-      }
+          }
         }
 
         fetchBtn.addEventListener('click', async () => {
@@ -1264,14 +1287,17 @@
           }
 
           if (button.dataset.action === 'download') {
-            window.open(getDownloadUrl(currentTorrentId, file.index), '_blank', 'noopener');
+            window.open(getDownloadUrl(currentTorrentId, file), '_blank', 'noopener');
+            return;
+          }
+
+          if (button.dataset.action === 'playlist') {
+            window.open(getFilePlaylistUrl(currentTorrentId, file), '_blank', 'noopener');
             return;
           }
 
           const fileType = inferFileType(file);
-          const streamUrl = fileType === 'video'
-            ? getTorrentStreamUrl(torrent)
-            : getFileStreamUrl(currentTorrentId, file);
+          const streamUrl = getFileStreamUrl(currentTorrentId, file);
 
           streamFile(file.name, fileType, streamUrl);
         });
