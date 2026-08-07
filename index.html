@@ -1,768 +1,1249 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Peerflix HLS Player</title>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
-    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest/dist/hls.min.js"></script>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            margin: 0;
-            padding: 20px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            color: #333;
-        }
-        .container {
-            max-width: 900px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-            overflow: hidden;
-        }
-        .header {
-            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
-            color: white;
-            padding: 30px;
-            text-align: center;
-        }
-        .header h1 {
-            margin: 0;
-            font-size: 2.5em;
-            font-weight: 300;
-        }
-        .header p {
-            margin: 10px 0 0 0;
-            opacity: 0.8;
-        }
-        .player-section {
-            padding: 30px;
-        }
-        .controls {
-            display: flex;
-            gap: 15px;
-            margin-bottom: 30px;
-            flex-wrap: wrap;
-        }
-        .btn {
-            padding: 12px 24px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 16px;
-            font-weight: 500;
-            transition: all 0.3s ease;
-            text-decoration: none;
-            display: inline-block;
-            text-align: center;
-        }
-        .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
-        }
-        .btn-secondary {
-            background: #f8f9fa;
-            color: #495057;
-            border: 2px solid #dee2e6;
-        }
-        .btn-secondary:hover {
-            background: #e9ecef;
-            border-color: #adb5bd;
-        }
-        .status {
-            padding: 15px;
-            border-radius: 8px;
-            margin: 20px 0;
-            display: none;
-        }
-        .status.info {
-            background: #d1ecf1;
-            border: 1px solid #bee5eb;
-            color: #0c5460;
-        }
-        .status.error {
-            background: #f8d7da;
-            border: 1px solid #f5c6cb;
-            color: #721c24;
-        }
-        .status.success {
-            background: #d4edda;
-            border: 1px solid #c3e6cb;
-            color: #155724;
-        }
-        .progress-container {
-            background: #f8f9fa;
-            border-radius: 10px;
-            padding: 20px;
-            margin: 20px 0;
-            display: none;
-        }
-        .progress-bar {
-            background: #e9ecef;
-            border-radius: 5px;
-            height: 8px;
-            overflow: hidden;
-            margin: 10px 0;
-        }
-        .progress-fill {
-            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
-            height: 100%;
-            width: 0%;
-            transition: width 0.3s ease;
-        }
-        .file-list {
-            margin-top: 20px;
-        }
-        .file-item {
-            background: white;
-            border: 1px solid #dee2e6;
-            border-radius: 8px;
-            padding: 15px;
-            margin: 10px 0;
-            display: flex;
-            justify-content: between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-        .file-info {
-            flex: 1;
-        }
-        .file-name {
-            font-weight: 600;
-            margin-bottom: 5px;
-        }
-        .file-size {
-            color: #6c757d;
-            font-size: 14px;
-        }
-        .video-container {
-            margin: 20px 0;
-            border-radius: 8px;
-            overflow: hidden;
-            background: #000;
-        }
-        video {
-            width: 100%;
-            height: auto;
-            max-height: 500px;
-        }
-        .stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 15px;
-            margin: 20px 0;
-        }
-        .stat-item {
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: 8px;
-            text-align: center;
-        }
-        .stat-value {
-            font-size: 1.5em;
-            font-weight: 600;
-            color: #495057;
-        }
-        .stat-label {
-            color: #6c757d;
-            font-size: 14px;
-            margin-top: 5px;
-        }
-        .server-config, .setup-instructions {
-            background: #f8f9fa;
-            border-radius: 10px;
-            padding: 20px;
-            margin: 20px 0;
-            border: 1px solid #dee2e6;
-        }
-        .server-config h3, .setup-instructions h3 {
-            margin-top: 0;
-            color: #495057;
-        }
-        .server-config input {
-            font-family: monospace;
-        }
-        .playlist-info {
-            background: #e7f3ff;
-            border: 1px solid #b8daff;
-            border-radius: 8px;
-            padding: 15px;
-            margin: 15px 0;
-            color: #004085;
-        }
-        @media (max-width: 768px) {
-            .controls {
-                flex-direction: column;
-            }
-            .btn {
-                width: 100%;
-            }
-            .header h1 {
-                font-size: 2em;
-            }
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Stoad — Instant Torrent Streaming & Inspection</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <style>
+    /* 
+      Theme Colors:
+      #F8F8F8 - Base background
+      #F85818 - Primary accent (Heat Orange)
+      #383734 - Main text & architectural lines
+      #EAF3F2 - Light teal background fill
+      #FDDED9 - Soft orange/coral fill
+    */
+    :root {
+      --bg-main: #F8F8F8;
+      --primary: #F85818;
+      --primary-hover: #d8450a;
+      --text-dark: #383734;
+      --text-muted: #6b6a67;
+      --teal-bg: #EAF3F2;
+      --coral-bg: #FDDED9;
+      --card-bg: #FFFFFF;
+      --border-line: rgba(56, 55, 52, 0.2);
+      --font-mono: 'JetBrains Mono', monospace;
+      --font-sans: 'Inter', sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-main);
+      color: var(--text-dark);
+      font-family: var(--font-sans);
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    /* Architectural Layout & Rails */
+    .page {
+      max-width: 900px;
+      margin: 0 auto;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+    }
+
+    .rail {
+      position: relative;
+      padding: 2rem;
+      background-color: var(--bg-main);
+    }
+
+    /* SVG Frames & Corner Junctions */
+    .frame {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      stroke: var(--border-line);
+      stroke-width: 1;
+    }
+
+    .junction {
+      position: absolute;
+      left: 0;
+      width: 100%;
+      height: 21px;
+      pointer-events: none;
+      color: var(--text-dark);
+      stroke: var(--border-line);
+      stroke-width: 1;
+    }
+
+    .junction.top { top: -10px; }
+    .junction.bottom { bottom: -10px; }
+
+    /* Header & Brand Lockup */
+    header.top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1.25rem 2rem;
+      border-bottom: 1px solid var(--border-line);
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .lockup {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      text-decoration: none;
+      color: var(--text-dark);
+      font-weight: 700;
+      font-size: 1.1rem;
+      letter-spacing: -0.02em;
+    }
+
+    .lockup-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 2.15rem;
+      height: 2.15rem;
+      flex-shrink: 0;
+    }
+
+    .lockup-icon .stoad-play-btn {
+      width: 100%;
+      height: 100%;
+    }
+
+    .by {
+      font-weight: 400;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
+    nav {
+      display: flex;
+      gap: 1.2rem;
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      flex-wrap: wrap;
+    }
+
+    nav a {
+      color: var(--text-dark);
+      text-decoration: none;
+      transition: color 0.15s;
+    }
+
+    nav a:hover {
+      color: var(--primary);
+    }
+
+    nav a.pkg {
+      color: var(--text-muted);
+    }
+
+    /* Bands & Content Blocks */
+    .band {
+      margin-bottom: 2.5rem;
+    }
+
+    h1 {
+      font-size: 2.75rem;
+      font-weight: 700;
+      line-height: 1.15;
+      letter-spacing: -0.03em;
+      margin-bottom: 1rem;
+    }
+
+    .heat {
+      color: var(--primary);
+      background: linear-gradient(180deg, transparent 65%, var(--coral-bg) 65%);
+    }
+
+    .lede {
+      font-size: 1.1rem;
+      color: var(--text-muted);
+      max-width: 680px;
+      margin-bottom: 1.5rem;
+    }
+
+    /* Technical Badges */
+    .badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      list-style: none;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+    }
+
+    .badges a {
+      display: flex;
+      border: 1px solid var(--border-line);
+      border-radius: 4px;
+      overflow: hidden;
+      text-decoration: none;
+    }
+
+    .badges .key {
+      background-color: var(--teal-bg);
+      color: var(--text-dark);
+      padding: 0.25rem 0.5rem;
+      border-right: 1px solid var(--border-line);
+      font-weight: 500;
+    }
+
+    .badges .value {
+      background-color: var(--card-bg);
+      color: var(--text-dark);
+      padding: 0.25rem 0.5rem;
+    }
+
+    /* Ad Placeholders */
+    .ad-banner {
+      background-color: #FAFAFA;
+      border: 1px dashed var(--border-line);
+      border-radius: 6px;
+      padding: 0.85rem;
+      text-align: center;
+      margin: 1.5rem 0;
+      position: relative;
+    }
+
+    .ad-tag {
+      position: absolute;
+      top: 4px;
+      right: 8px;
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .ad-content {
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+
+    .ad-inline {
+      min-height: 90px;
+    }
+
+    /* Interactive Drop / Input Area */
+    .drop-zone {
+      background-color: var(--card-bg);
+      border: 1px solid var(--border-line);
+      border-radius: 8px;
+      padding: 2rem;
+      text-align: center;
+      transition: all 0.2s ease;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+    }
+
+    .drop-zone:focus-within {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--coral-bg);
+    }
+
+    .drop-input-group {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 1rem;
+    }
+
+    .drop-input-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      margin-top: 1rem;
+    }
+
+    .config-line {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem 0.9rem;
+      background: var(--teal-bg);
+      border: 1px solid var(--border-line);
+      border-radius: 6px;
+      flex-wrap: wrap;
+    }
+
+    .config-line label {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      color: var(--text-dark);
+    }
+
+    .config-line input {
+      flex: 1;
+      min-width: 220px;
+      padding: 0.65rem 0.8rem;
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      border: 1px solid var(--border-line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--text-dark);
+      outline: none;
+    }
+
+    .config-line input:focus {
+      border-color: var(--primary);
+    }
+
+    .config-meta {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      text-align: left;
+    }
+
+    .config-meta a {
+      color: var(--primary);
+      text-decoration: none;
+    }
+
+    .drop-input-group input {
+      flex: 1;
+      padding: 0.75rem 1rem;
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      border: 1px solid var(--border-line);
+      border-radius: 6px;
+      background: var(--bg-main);
+      color: var(--text-dark);
+      outline: none;
+      min-width: 0;
+    }
+
+    .drop-input-group input:focus {
+      border-color: var(--primary);
+      background: #FFF;
+    }
+
+    .btn-action {
+      background-color: var(--primary);
+      color: #FFF;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 6px;
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.15s;
+      white-space: nowrap;
+    }
+
+    .btn-action:hover {
+      background-color: var(--primary-hover);
+    }
+
+    .samples {
+      margin-top: 1rem;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      line-height: 1.8;
+    }
+
+    .samples button {
+      background: var(--teal-bg);
+      border: 1px solid var(--border-line);
+      color: var(--text-dark);
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      padding: 0.3rem 0.6rem;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-left: 0.25rem;
+      transition: all 0.15s;
+
+    }
+
+    .samples button:hover {
+      background: var(--coral-bg);
+      border-color: var(--primary);
+    }
+
+    /* Result Band & Files Viewer */
+    .result {
+      background: var(--card-bg);
+      border: 1px solid var(--border-line);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .result-bar {
+      display: flex;
+      align-items: center;
+      padding: 0.75rem 1.25rem;
+      background-color: var(--teal-bg);
+      border-bottom: 1px solid var(--border-line);
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .result-bar .spacer { flex: 1; }
+
+    .file-tree {
+      list-style: none;
+    }
+
+    .file-node {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.75rem 1.25rem;
+      border-bottom: 1px solid var(--border-line);
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      gap: 1rem;
+    }
+
+    .file-node:last-child {
+      border-bottom: none;
+    }
+
+    .file-node:hover {
+      background-color: var(--teal-bg);
+    }
+
+    .file-info {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      min-width: 0;
+    }
+
+    .file-name {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .file-size {
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      white-space: nowrap;
+    }
+
+    .file-actions {
+      display: flex;
+      gap: 0.4rem;
+      flex-shrink: 0;
+    }
+
+    .btn-sm {
+      background: var(--card-bg);
+      border: 1px solid var(--border-line);
+      padding: 0.35rem 0.6rem;
+      border-radius: 4px;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .btn-sm:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+
+    /* Preview Output Window */
+    .preview-box {
+      padding: 1.25rem;
+      background: #1E1D1B;
+      color: #F8F8F8;
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      display: none;
+    }
+
+    .preview-box video, .preview-box audio, .preview-box img {
+      width: 100%;
+      max-width: 100%;
+      border-radius: 4px;
+      margin-top: 0.5rem;
+    }
+
+    /* Definition Lists / Facts */
+    dl.facts, dl.installs {
+      display: grid;
+      grid-template-columns: 140px 1fr;
+      gap: 1rem 1.5rem;
+      font-size: 0.9rem;
+    }
+
+    dt {
+      font-family: var(--font-mono);
+      font-weight: 600;
+      color: var(--text-dark);
+    }
+
+    dd {
+      color: var(--text-muted);
+      overflow-x: auto;
+    }
+
+    code.cmd {
+      font-family: var(--font-mono);
+      background: var(--teal-bg);
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      color: var(--text-dark);
+      border: 1px solid var(--border-line);
+      display: inline-block;
+      max-width: 100%;
+      overflow-x: auto;
+      vertical-align: middle;
+    }
+
+    .dollar {
+      color: var(--primary);
+      font-family: var(--font-mono);
+      margin-right: 0.4rem;
+    }
+
+    /* Footer Rail */
+    footer.rail {
+      margin-top: auto;
+      border-top: 1px solid var(--border-line);
+      padding: 1.25rem 2rem;
+      display: flex;
+      gap: 1.5rem;
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      flex-wrap: wrap;
+    }
+
+    footer a {
+      color: var(--text-dark);
+      text-decoration: none;
+    }
+
+    footer a:hover {
+      color: var(--primary);
+    }
+
+    /* ==========================================================================
+       Responsive Breakpoints (Tablets & Mobile)
+       ========================================================================== */
+
+    @media (max-width: 768px) {
+      .rail {
+        padding: 1.25rem;
+      }
+
+      header.top {
+        padding: 1rem 1.25rem;
+      }
+
+      h1 {
+        font-size: 2rem;
+      }
+
+      .lede {
+        font-size: 1rem;
+      }
+
+      dl.facts, dl.installs {
+        grid-template-columns: 1fr;
+        gap: 0.3rem 0;
+      }
+
+      dl.facts dt, dl.installs dt {
+        margin-top: 0.8rem;
+      }
+
+      dl.facts dt:first-child, dl.installs dt:first-child {
+        margin-top: 0;
+      }
+
+      .ad-banner {
+        padding: 1.25rem 0.75rem 0.75rem;
+      }
+
+      .ad-content {
+        font-size: 0.75rem;
+      }
+    }
+
+    @media (max-width: 480px) {
+      header.top {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .lockup-icon {
+        width: 1.9rem;
+        height: 1.9rem;
+      }
+
+      nav {
+        gap: 0.8rem;
+      }
+
+      h1 {
+        font-size: 1.65rem;
+      }
+
+      .drop-zone {
+        padding: 1.25rem 0.85rem;
+      }
+
+      .drop-input-group {
+        flex-direction: column;
+      }
+
+      .config-line {
+        align-items: stretch;
+      }
+
+      .config-line input {
+        min-width: 0;
+        width: 100%;
+      }
+
+      .btn-action {
+        width: 100%;
+        padding: 0.85rem;
+      }
+
+      .file-node {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+      }
+
+      .file-info {
+        width: 100%;
+      }
+
+      .file-actions {
+        width: 100%;
+        justify-content: flex-end;
+      }
+
+      footer.rail {
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+    }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>🎬 Torrent File Browser</h1>
-            <p>Add torrents to server and get direct file links for streaming</p>
-        </div>
-        
-        <div class="player-section">
-            <div class="controls">
-                <button class="btn btn-primary" onclick="startStreaming()">🚀 Add Torrent & Browse Files</button>
-                <button class="btn btn-secondary" onclick="openInDefaultApp()">📱 Open in Default App</button>
-            </div>
-            
-            <div id="serverConfig" class="server-config" style="display: none;">
-                <h3>🛠️ Server Configuration</h3>
-                <div style="margin: 15px 0;">
-                    <label>Server URL:</label>
-                    <input type="text" id="serverUrl" placeholder="http://stream.server96.com:9050" value="http://stream.server96.com:9050" style="width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px;">
-                </div>
-                <div style="margin: 15px 0;">
-                    <button class="btn btn-primary" onclick="connectToPeerflix()">Connect to Server</button>
-                    <button class="btn btn-secondary" onclick="showServerSetup()">Setup Instructions</button>
-                </div>
-            </div>
-            
-            <div id="setupInstructions" class="setup-instructions" style="display: none;">
-                <h3>📋 Server Setup</h3>
-                <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0;">
-                    <p><strong>Current Server URL:</strong> http://stream.server96.com:9050</p>
-                    <p><strong>API Format:</strong> /torrents/torrenthash (returns JSON with file links)</p>
-                    <p><strong>M3U Format:</strong> /torrents/torrenthash/files</p>
-                    
-                    <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 10px; border-radius: 5px; margin: 10px 0;">
-                        <strong>⚠️ Mixed Content Warning:</strong><br>
-                        If you get "Mixed Content" errors, you need to either:
-                        <ul style="margin: 5px 0; padding-left: 20px;">
-                            <li>Open this page via HTTP (not HTTPS)</li>
-                            <li>Use a local HTTP server: <code>python -m http.server 8000</code></li>
-                            <li>Allow insecure content in your browser settings</li>
-                        </ul>
-                    </div>
-                    
-                    <p style="margin-top: 15px;"><strong>How to use:</strong></p>
-                    <ol>
-                        <li>Make sure your server is running on stream.server96.com:9050</li>
-                        <li>Add a torrent hash after # in the URL</li>
-                        <li>Click "Add Torrent & Browse Files" to add torrent to server</li>
-                        <li>Get direct file links and M3U playlist URL</li>
-                        <li>Use links in VLC, MPV, or any media player</li>
-                    </ol>
-                    
-                    <p style="margin-top: 15px;"><strong>Example URLs:</strong></p>
-                    <ul style="font-size: 12px;">
-                        <li>Torrent Info: http://stream.server96.com:9050/torrents/[hash]</li>
-                        <li>M3U Playlist: http://stream.server96.com:9050/torrents/[hash]/files</li>
-                        <li>Direct File: http://stream.server96.com:9050/torrents/[hash]/files/[filename]</li>
-                    </ul>
-                </div>
-            </div>
-            
-            <div id="status" class="status"></div>
-            
-            <div id="progress" class="progress-container">
-                <div class="stats">
-                    <div class="stat-item">
-                        <div id="downloadSpeed" class="stat-value">0 KB/s</div>
-                        <div class="stat-label">Download Speed</div>
-                    </div>
-                    <div class="stat-item">
-                        <div id="uploadSpeed" class="stat-value">0 KB/s</div>
-                        <div class="stat-label">Upload Speed</div>
-                    </div>
-                    <div class="stat-item">
-                        <div id="peers" class="stat-value">0</div>
-                        <div class="stat-label">Peers</div>
-                    </div>
-                    <div class="stat-item">
-                        <div id="downloaded" class="stat-value">0%</div>
-                        <div class="stat-label">Downloaded</div>
-                    </div>
-                </div>
-                
-                <div class="progress-bar">
-                    <div id="progressFill" class="progress-fill"></div>
-                </div>
-                
-                <div id="torrentInfo" style="text-align: center; margin-top: 10px; color: #6c757d;"></div>
-            </div>
-            
-            <div id="videoContainer" class="video-container" style="display: none;">
-                <video id="videoPlayer" controls></video>
-            </div>
-            
-            <div id="fileList" class="file-list"></div>
-        </div>
+
+  <div class="page">
+    
+    <!-- Top Header Rail -->
+    <header class="top rail">
+      <svg class="frame" aria-hidden="true">
+        <line x1="0.5" y1="0" x2="0.5" y2="100%"></line>
+        <line x1="100%" y1="0" x2="100%" y2="100%" transform="translate(-0.5 0)"></line>
+      </svg>
+      <a class="lockup" href="#">
+        <span class="lockup-icon" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100" class="stoad-play-btn">
+            <defs>
+              <style>
+                .stoad-play-btn {
+                  cursor: pointer;
+                  overflow: visible;
+                }
+
+                .chev-back,
+                .chev-front {
+                  stroke-width: 6;
+                  stroke-linejoin: round;
+                  fill: none;
+                  transform-box: fill-box;
+                  transform-origin: center;
+                  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), stroke 0.2s ease;
+                }
+
+                .chev-back { stroke: #F85818; }
+                .chev-front { stroke: #383734; }
+
+                .stoad-play-btn:hover .chev-back {
+                  transform: translateX(-2px);
+                  stroke: #d8450a;
+                }
+
+                .stoad-play-btn:hover .chev-front {
+                  transform: translateX(4px);
+                  stroke: #F85818;
+                }
+              </style>
+            </defs>
+            <g>
+              <polygon class="chev-back" points="26,26 58,50 26,74" />
+              <polygon class="chev-front" points="38,26 70,50 38,74" />
+            </g>
+          </svg>
+        </span>
+        <span class="wordmark">stoad <span class="by">by server96</span></span>
+      </a>
+      <!-- <nav>
+        <a href="https://github.com">GitHub</a>
+        <a class="pkg" href="#">npm</a>
+        <a class="pkg" href="#">crates.io</a>
+        <a class="pkg" href="#">PyPI</a>
+      </nav> -->
+    </header>
+
+    <!-- Top Advert Placeholder -->
+    <div class="ad-banner" id="ad-top">
+      <span class="ad-tag">Advertisement</span>
+      <div class="ad-content">
+        <span>⚡ High-Speed Wireguard VPN — 70% Off for Stoad Users</span>
+      </div>
     </div>
 
-    <script>
-        let hls = null;
-        let currentTorrentHash = '';
-        let peerflixServerUrl = 'http://stream.server96.com:9050';
-        let playlistUrl = '';
+    <!-- Main Rail Container -->
+    <main class="rail">
+      
+      <svg class="frame" aria-hidden="true">
+        <line x1="0.5" y1="0" x2="0.5" y2="100%"></line>
+        <line x1="100%" y1="0" x2="100%" y2="100%" transform="translate(-0.5 0)"></line>
+      </svg>
 
-        function showStatus(message, type = 'info') {
-            const status = document.getElementById('status');
-            status.textContent = message;
-            status.className = `status ${type}`;
-            status.style.display = 'block';
-        }
+      <!-- Junction SVGs -->
+      <svg class="junction top" aria-hidden="true">
+        <line x1="0" y1="10.5" x2="100%" y2="10.5"></line>
+        <path d="M4 0H11V7H10C10 3.68629 7.31371 1 4 1V0Z" fill="currentColor" transform="rotate(180 5.5 5.5)"></path>
+        <path d="M4 0H11V7H10C10 3.68629 7.31371 1 4 1V0Z" fill="currentColor" transform="translate(0 10) rotate(-90 5.5 5.5)"></path>
+        <svg x="100%" overflow="visible">
+          <path d="M4 0H11V7H10C10 3.68629 7.31371 1 4 1V0Z" fill="currentColor" transform="translate(-11 0) rotate(90 5.5 5.5)"></path>
+          <path d="M4 0H11V7H10C10 3.68629 7.31371 1 4 1V0Z" fill="currentColor" transform="translate(-11 10)"></path>
+        </svg>
+      </svg>
 
-        function hideStatus() {
-            document.getElementById('status').style.display = 'none';
-        }
+      <!-- Hero Section -->
+      <section class="band">
+        <h1>Any magnet in.<br><span class="heat">Media stream out.</span></h1>
+        <p class="lede">
+          In-browser WebTorrent client that inspects magnet links, builds direct file trees, and streams audio, video, and documents instantly. <strong>Files stream peer-to-peer directly in your browser window</strong>.
+        </p>
 
-        function extractMagnetFromHash() {
-            const hash = window.location.hash.substring(1);
-            if (!hash) return null;
+        <ul class="badges">
+          <li>
+            <a href="#">
+              <span class="key">crates.io</span><span class="value">stoad-rs</span>
+            </a>
+          </li>
+          <li>
+            <a href="#">
+              <span class="key">npm</span><span class="value">@stoad/core</span>
+            </a>
+          </li>
+          <li>
+            <a href="#">
+              <span class="key">PyPI</span><span class="value">stoad-python</span>
+            </a>
+          </li>
+          <li>
+            <a href="#">
+              <span class="key">license</span><span class="value">MIT</span>
+            </a>
+          </li>
+        </ul>
+      </section>
 
-            if (hash.startsWith('magnet:')) {
-                // Extract hash from full magnet link
-                const match = hash.match(/xt=urn:btih:([a-fA-F0-9]{40})/);
-                return match ? match[1].toLowerCase() : null;
-            } else {
-                // Assume it's just a hash
-                const cleanHash = hash.replace(/^\/+/, '');
-                return cleanHash.length === 40 ? cleanHash.toLowerCase() : null;
-            }
-        }
+      <!-- Input Drop Area -->
+      <section class="band">
+        <div class="drop-zone">
+          <span style="font-family: var(--font-mono); font-weight: 600; display: block; font-size: 1.05rem;">Paste a torrent magnet link</span>
+          <span style="color: var(--text-muted); font-size: 0.85rem; display: block; margin-top: 0.2rem;">Point the UI at your streaming API, then submit a magnet link for live torrent inspection.</span>
 
-        function showServerSetup() {
-            const setupDiv = document.getElementById('setupInstructions');
-            setupDiv.style.display = setupDiv.style.display === 'none' ? 'block' : 'none';
-        }
+          <div class="drop-input-stack">
+            <div class="config-line">
+              <label for="api-base-input">API Server</label>
+              <input type="text" id="api-base-input" placeholder="https://play.server96.com" />
+              <button class="btn-sm" id="save-api-btn" type="button">Save</button>
+            </div>
 
-        function showMixedContentHelp() {
-            const helpDiv = document.createElement('div');
-            helpDiv.className = 'status error';
-            helpDiv.style.display = 'block';
-            helpDiv.innerHTML = `
-                <strong>🔒 Mixed Content Blocked!</strong><br>
-                <p>Your browser blocked HTTP requests from this HTTPS page. To fix this:</p>
-                <ol>
-                    <li><strong>Serve this page over HTTP:</strong> Open file:// or use a local HTTP server</li>
-                    <li><strong>Use HTTPS server:</strong> Configure your server to use HTTPS</li>
-                    <li><strong>Allow insecure content:</strong> Click the shield icon in your browser's address bar</li>
-                </ol>
-                <p><strong>Quick fix:</strong> Copy this page's URL and replace 'https://' with 'http://' if possible</p>
-            `;
-            
-            const statusDiv = document.getElementById('status');
-            statusDiv.parentNode.insertBefore(helpDiv, statusDiv.nextSibling);
-        }
+            <div class="config-meta" id="api-config-note">
+              Use your HTTPS backend URL for GitHub Pages deployments. Example: https://play.server96.com
+            </div>
 
-        function connectToPeerflix() {
-            const serverUrl = document.getElementById('serverUrl').value.trim();
-            if (!serverUrl) {
-                showStatus('Please enter a valid server URL', 'error');
-                return;
-            }
-            
-            peerflixServerUrl = serverUrl.replace(/\/$/, ''); // Remove trailing slash
-            
-            // Test connection to your custom server
-            fetch(`${peerflixServerUrl}/torrents`)
-                .then(response => {
-                    if (response.ok || response.status === 404) { // 404 is ok, means server is running
-                        showStatus('✅ Connected to server successfully!', 'success');
-                        document.getElementById('serverConfig').style.display = 'none';
-                        localStorage.setItem('peerflixServerUrl', peerflixServerUrl);
-                    } else {
-                        throw new Error('Server responded with error');
-                    }
-                })
-                .catch(error => {
-                    if (error.message.includes('Mixed Content') || error.message.includes('blocked')) {
-                        showStatus('❌ Mixed Content Error: Serve this page over HTTP or use HTTPS server', 'error');
-                        showMixedContentHelp();
-                    } else {
-                        showStatus('❌ Failed to connect to server. Make sure it\'s running!', 'error');
-                    }
-                    console.error('Connection error:', error);
-                });
-        }
+            <div class="drop-input-group">
+              <input type="text" id="magnet-input" placeholder="magnet:?xt=urn:btih:..." />
+              <button class="btn-action" id="fetch-btn">Parse Magnet</button>
+            </div>
+          </div>
+        </div>
 
-        function startStreaming() {
-            currentTorrentHash = extractMagnetFromHash();
-            
-            if (!currentTorrentHash) {
-                showStatus('No valid torrent hash found. Please add a hash or magnet link after # in the URL.', 'error');
-                return;
-            }
+        <p class="samples">
+          No magnet link at hand? Try a sample swarm:
+          <button id="sample-video">sintel_1080p.mkv</button>
+          <button id="sample-audio">cosmic_synth.flac</button>
+        </p>
+      </section>
 
-            if (!peerflixServerUrl) {
-                document.getElementById('serverConfig').style.display = 'block';
-                showStatus('Please configure server first', 'error');
-                return;
-            }
+      <!-- In-Feed Ad Placeholder -->
+      <div class="ad-banner ad-inline" id="ad-mid">
+        <span class="ad-tag">Sponsor Ad</span>
+        <div class="ad-content">
+          <span>🚀 Upgrade to Stoad Pro for Unlimited Remote Cloud Caching & Debrid Integration</span>
+        </div>
+      </div>
 
-            showStatus('📤 Adding torrent to server...', 'info');
-            document.getElementById('progress').style.display = 'block';
+      <!-- Results File Tree -->
+      <section class="band result" id="result-box" style="display: none;">
+        <div class="result-bar">
+          <span id="result-name">Sintel.2010.1080p.mkv</span>
+          <span class="spacer"></span>
+          <span id="result-stats" style="color: var(--text-muted);">4 files · 648.2 MB · 42 Seeders</span>
+        </div>
 
-            // First, make POST request to add torrent
-            const magnetLink = `magnet:?xt=urn:btih:${currentTorrentHash}`;
-            
-            fetch(`${peerflixServerUrl}/torrents`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    link: magnetLink
-                })
-            })
-                .then(response => {
-                    if (response.ok) {
-                        return response.json();
-                    } else {
-                        throw new Error(`Server responded with ${response.status}`);
-                    }
-                })
-                .then(responseData => {
-                    // Extract infoHash from response
-                    const infoHash = responseData[0]?.infoHash;
-                    if (!infoHash) {
-                        throw new Error('No infoHash returned from server');
-                    }
-                    
-                    showStatus('✅ Torrent added! Getting torrent info...', 'info');
-                    
-                    // Now fetch torrent info using the returned infoHash
-                    return fetch(`${peerflixServerUrl}/torrents/${infoHash}`);
-                })
-                .then(response => {
-                    if (response.ok) {
-                        return response.json();
-                    } else {
-                        throw new Error(`Server responded with ${response.status}`);
-                    }
-                })
-                .then(torrentData => {
-                    showStatus('✅ Torrent info loaded successfully!', 'success');
-                    document.getElementById('torrentInfo').textContent = `📁 ${torrentData.name || 'Unknown torrent'}`;
-                    
-                    // Display files with direct links
-                    displayTorrentFiles(torrentData, torrentData.infoHash || currentTorrentHash);
-                })
-                .catch(error => {
-                    if (error.message.includes('Mixed Content') || error.message.includes('blocked') || error.name === 'TypeError') {
-                        showStatus('❌ Mixed Content Error: Cannot make HTTP requests from HTTPS page', 'error');
-                        showMixedContentHelp();
-                    } else {
-                        showStatus('Error processing torrent: ' + error.message, 'error');
-                    }
-                    console.error('Torrent processing error:', error);
-                    
-                    // Show basic M3U interface as fallback
-                    const m3uUrl = `${peerflixServerUrl}/torrents/${currentTorrentHash}/files`;
-                    loadM3UPlaylist(m3uUrl, currentTorrentHash);
-                });
-        }
+        <ul class="file-tree" id="file-tree">
+          <!-- Injected dynamically via JS -->
+        </ul>
 
-        function displayTorrentFiles(torrentData, infoHash) {
-            const fileList = document.getElementById('fileList');
-            fileList.innerHTML = '<h3>📁 Files in this torrent:</h3>';
-            
-            // Show M3U playlist info
-            const m3uUrl = `${peerflixServerUrl}/torrents/${infoHash}/files`;
-            const playlistInfo = document.createElement('div');
-            playlistInfo.className = 'playlist-info';
-            playlistInfo.innerHTML = `
-                <strong>🎯 M3U Playlist URL:</strong><br>
-                <code style="word-break: break-all;">${m3uUrl}</code><br>
-                <small>This M3U playlist URL can be used in VLC, MPV, or any media player that supports M3U playlists</small>
-            `;
-            
-            const progressContainer = document.getElementById('progress');
-            if (!document.querySelector('.playlist-info')) {
-                progressContainer.appendChild(playlistInfo);
-            }
-            
-            // Display individual files
-            torrentData.files.forEach((file, index) => {
-                const fileItem = document.createElement('div');
-                fileItem.className = 'file-item';
-                
-                const isVideo = file.name.toLowerCase().match(/\.(mp4|avi|mkv|mov|wmv|flv|webm|m4v)$/);
-                const isAudio = file.name.toLowerCase().match(/\.(mp3|wav|ogg|flac|aac)$/);
-                const isImage = file.name.toLowerCase().match(/\.(jpg|jpeg|png|gif|bmp|webp)$/);
-                
-                const fileSize = formatBytes(file.length);
-                const directUrl = `${peerflixServerUrl}${file.link}`;
-                
-                fileItem.innerHTML = `
-                    <div class="file-info">
-                        <div class="file-name">${isVideo ? '🎬' : isAudio ? '🎵' : isImage ? '🖼️' : '📄'} ${file.name}</div>
-                        <div class="file-size">${fileSize}</div>
-                        <div style="font-size: 12px; color: #666; margin-top: 5px;">
-                            <strong>Direct Link:</strong><br>
-                            <code style="word-break: break-all; font-size: 11px;">${directUrl}</code>
-                        </div>
-                    </div>
-                    <div style="display: flex; flex-direction: column; gap: 5px;">
-                        ${isVideo ? `<button class="btn btn-primary" onclick="playDirectVideoFromServer('${directUrl}', '${file.name}')">▶️ Play</button>` : ''}
-                        <button class="btn btn-secondary" onclick="openDirectLink('${directUrl}', '${file.name}')">🔗 Open Link</button>
-                        <button class="btn btn-secondary" onclick="copyToClipboard('${directUrl}')">📋 Copy URL</button>
-                    </div>
-                `;
-                
-                fileList.appendChild(fileItem);
-            });
-            
-            // Auto-play first video file
-            const firstVideo = torrentData.files.find(file => 
-                file.name.toLowerCase().match(/\.(mp4|avi|mkv|mov|wmv|flv|webm|m4v)$/));
-            if (firstVideo) {
-                const directUrl = `${peerflixServerUrl}${firstVideo.link}`;
-                setTimeout(() => playDirectVideoFromServer(directUrl, firstVideo.name), 1000);
-            }
-        }
+        <div class="preview-box" id="preview-box">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+            <span id="preview-title" style="color: var(--primary); font-weight: 600;">&gt;_ Stream Preview</span>
+            <button class="btn-sm" id="close-preview" style="background:#000; color:#fff;">Close [X]</button>
+          </div>
+          <div id="media-viewport"></div>
+        </div>
+      </section>
 
-        function playDirectVideoFromServer(url, fileName) {
-            const video = document.getElementById('videoPlayer');
-            const videoContainer = document.getElementById('videoContainer');
-            
-            showStatus(`▶️ Playing: ${fileName}`, 'info');
-            
-            // Set video source directly
-            video.src = url;
-            videoContainer.style.display = 'block';
-            video.scrollIntoView({ behavior: 'smooth' });
-            
-            video.addEventListener('loadedmetadata', () => {
-                showStatus(`✅ Now playing: ${fileName}`, 'success');
-                video.play().catch(e => console.log('Autoplay prevented:', e));
-            });
-            
-            video.addEventListener('error', (e) => {
-                showStatus(`Error playing video: ${fileName}`, 'error');
-                console.error('Video error:', e);
-            });
-        }
+      <!-- Technical Architecture Info -->
+      <section class="band">
+        <h2 style="font-size: 1.35rem; margin-bottom: 1rem;">Architecture</h2>
+        <dl class="facts">
+          <dt>Swarm Engine</dt>
+          <dd>
+            <strong>Direct WebRTC peer connections</strong> eliminate central proxy bottlenecks. Files are requested block-by-block and stored in IndexedDB temporary buffers.
+          </dd>
 
-        function openDirectLink(url, fileName) {
-            window.open(url, '_blank');
-            showStatus(`🔗 Opening: ${fileName}`, 'info');
-        }
+          <dt>Media Inspection</dt>
+          <dd>
+            Header frames are read selectively first. Streamable containers (.mp4, .mkv, .mp3) play immediately while remaining blocks load in the background.
+          </dd>
 
-        function copyToClipboard(text) {
-            navigator.clipboard.writeText(text).then(() => {
-                showStatus('📋 URL copied to clipboard!', 'success');
-            }).catch(err => {
-                console.error('Failed to copy: ', err);
-                showStatus('❌ Failed to copy URL', 'error');
-            });
-        }
+          <dt>Local Privacy</dt>
+          <dd>
+            Zero server uploads. Magnet metadata and file structures are calculated locally using WebAssembly rust-bencode modules.
+          </dd>
+        </dl>
+      </section>
 
-        function loadM3UPlaylist(m3uUrl, infoHash) {
-            // Show playlist info
-            const playlistInfo = document.createElement('div');
-            playlistInfo.className = 'playlist-info';
-            playlistInfo.innerHTML = `
-                <strong>🎯 M3U Playlist URL:</strong><br>
-                <code style="word-break: break-all;">${m3uUrl}</code><br>
-                <small>This M3U playlist URL can be used in VLC, MPV, or any media player that supports M3U playlists</small>
-            `;
-            
-            const progressContainer = document.getElementById('progress');
-            if (!document.querySelector('.playlist-info')) {
-                progressContainer.appendChild(playlistInfo);
-            }
+      <!-- Terminal / Install Band -->
+      <section class="band">
+        <h2 style="font-size: 1.35rem; margin-bottom: 1rem;">CLI Installation</h2>
+        <dl class="installs">
+          <dt>Rust</dt>
+          <dd><span class="dollar">$</span><code class="cmd">cargo install stoad-cli</code></dd>
+          
+          <dt>Node.js</dt>
+          <dd><span class="dollar">$</span><code class="cmd">npm install -g @stoad/cli</code></dd>
 
-            // Try to fetch the M3U content
-            fetch(m3uUrl)
-                .then(response => {
-                    if (response.ok) {
-                        return response.text();
-                    } else {
-                        throw new Error(`Server responded with ${response.status}`);
-                    }
-                })
-                .then(m3uContent => {
-                    showStatus('✅ M3U playlist loaded successfully!', 'success');
-                    parseM3UContent(m3uContent, infoHash);
-                })
-                .catch(error => {
-                    showStatus('M3U playlist ready. You can copy the URL above to use in external players.', 'info');
-                    console.log('M3U fetch note:', error.message);
-                    
-                    // Show basic file list interface even if we can't fetch content
-                    createBasicFileInterface(infoHash);
-                });
-        }
+          <dt>CLI Stream</dt>
+          <dd><span class="dollar">$</span><code class="cmd">stoad "magnet:?xt=urn:btih:..." --vlc</code></dd>
+        </dl>
+      </section>
 
-        function parseM3UContent(content, infoHash) {
-            const lines = content.split('\n');
-            const files = [];
-            let currentFile = null;
-            
-            for (let line of lines) {
-                line = line.trim();
-                if (line.startsWith('#EXTINF:')) {
-                    // Extract file info from #EXTINF line
-                    const match = line.match(/#EXTINF:([^,]*),(.+)/);
-                    if (match) {
-                        currentFile = {
-                            duration: match[1],
-                            name: match[2],
-                            url: null
-                        };
-                    }
-                } else if (line && !line.startsWith('#') && currentFile) {
-                    // This should be the file URL
-                    currentFile.url = line;
-                    files.push(currentFile);
-                    currentFile = null;
-                }
-            }
-            
-            if (files.length > 0) {
-                displayM3UFiles(files, infoHash);
-                // Auto-play first video file
-                const firstVideo = files.find(file => 
-                    file.name.toLowerCase().match(/\.(mp4|avi|mkv|mov|wmv|flv|webm|m4v)$/));
-                if (firstVideo) {
-                    setTimeout(() => playDirectVideo(firstVideo), 1000);
-                }
-            } else {
-                createBasicFileInterface(infoHash);
-            }
-        }
+      <!-- Bottom Junction -->
+      <svg class="junction bottom" aria-hidden="true">
+        <line x1="0" y1="10.5" x2="100%" y2="10.5"></line>
+        <path d="M4 0H11V7H10C10 3.68629 7.31371 1 4 1V0Z" fill="currentColor" transform="rotate(180 5.5 5.5)"></path>
+        <path d="M4 0H11V7H10C10 3.68629 7.31371 1 4 1V0Z" fill="currentColor" transform="translate(0 10) rotate(-90 5.5 5.5)"></path>
+        <svg x="100%" overflow="visible">
+          <path d="M4 0H11V7H10C10 3.68629 7.31371 1 4 1V0Z" fill="currentColor" transform="translate(-11 0) rotate(90 5.5 5.5)"></path>
+          <path d="M4 0H11V7H10C10 3.68629 7.31371 1 4 1V0Z" fill="currentColor" transform="translate(-11 10)"></path>
+        </svg>
+      </svg>
 
-        function createBasicFileInterface(infoHash) {
-            const fileList = document.getElementById('fileList');
-            fileList.innerHTML = `
-                <h3>📁 Media Files Available:</h3>
-                <div class="file-item">
-                    <div class="file-info">
-                        <div class="file-name">🎬 Stream via M3U Playlist</div>
-                        <div class="file-size">Use the M3U URL above in your preferred media player</div>
-                    </div>
-                    <button class="btn btn-primary" onclick="openM3UInPlayer()">📺 Open in Player</button>
-                </div>
-            `;
-        }
+    </main>
 
-        function displayM3UFiles(files, infoHash) {
-            const fileList = document.getElementById('fileList');
-            fileList.innerHTML = '<h3>📁 Files from M3U playlist:</h3>';
-            
-            files.forEach((file, index) => {
-                const fileItem = document.createElement('div');
-                fileItem.className = 'file-item';
-                
-                const isVideo = file.name.toLowerCase().match(/\.(mp4|avi|mkv|mov|wmv|flv|webm|m4v)$/);
-                const isAudio = file.name.toLowerCase().match(/\.(mp3|wav|ogg|flac|aac)$/);
-                
-                fileItem.innerHTML = `
-                    <div class="file-info">
-                        <div class="file-name">${isVideo ? '🎬' : isAudio ? '🎵' : '📄'} ${file.name}</div>
-                        <div class="file-size">Duration: ${file.duration || 'Unknown'}</div>
-                    </div>
-                    ${isVideo ? `<button class="btn btn-primary" onclick="playDirectVideo(${JSON.stringify(file).replace(/"/g, '&quot;')})">▶️ Play</button>` : ''}
-                `;
-                
-                fileList.appendChild(fileItem);
-            });
-        }
+    <!-- Footer Rail -->
+    <footer class="rail">
+      <svg class="frame" aria-hidden="true">
+        <line x1="0.5" y1="0" x2="0.5" y2="100%"></line>
+        <line x1="100%" y1="0" x2="100%" y2="100%" transform="translate(-0.5 0)"></line>
+      </svg>
+      <span>MIT License</span>
+      <a href="#">Source Code</a>
+      <a href="#">Bug Tracker</a>
+      <a href="#">Built with Rust & WebAssembly</a>
+    </footer>
 
-        function playDirectVideo(file) {
-            const video = document.getElementById('videoPlayer');
-            const videoContainer = document.getElementById('videoContainer');
-            
-            showStatus(`▶️ Playing: ${file.name}`, 'info');
-            
-            // Set video source directly
-            video.src = file.url;
-            videoContainer.style.display = 'block';
-            video.scrollIntoView({ behavior: 'smooth' });
-            
-            video.addEventListener('loadedmetadata', () => {
-                showStatus(`✅ Now playing: ${file.name}`, 'success');
-                video.play().catch(e => console.log('Autoplay prevented:', e));
-            });
-            
-            video.addEventListener('error', (e) => {
-                showStatus(`Error playing video: ${file.name}`, 'error');
-                console.error('Video error:', e);
-            });
-        }
+  </div>
 
-        function openM3UInPlayer() {
-            const m3uUrl = `${peerflixServerUrl}/torrents/${currentTorrentHash}/files`;
-            
-            // Try to open in system default player
-            const link = document.createElement('a');
-            link.href = m3uUrl;
-            link.target = '_blank';
-            link.click();
-            
-            showStatus('🎬 Opening M3U playlist in external player...', 'info');
-        }
+      <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.20/dist/hls.min.js"></script>
+
+  <!-- Interactive JavaScript Logic -->
+  <script>
+        const DEFAULT_API_BASE_URL = window.STOAD_API_BASE || 'http://localhost:6991';
+    const fetchBtn = document.getElementById('fetch-btn');
+    const magnetInput = document.getElementById('magnet-input');
+    const resultBox = document.getElementById('result-box');
+    const fileTree = document.getElementById('file-tree');
+    const previewBox = document.getElementById('preview-box');
+    const mediaViewport = document.getElementById('media-viewport');
+    const closePreview = document.getElementById('close-preview');
+      const apiBaseInput = document.getElementById('api-base-input');
+      const saveApiBtn = document.getElementById('save-api-btn');
+      const apiConfigNote = document.getElementById('api-config-note');
+
+        let currentTorrentId = null;
+        let pollTimer = null;
+        let activeHls = null;
+        let apiBaseUrl = localStorage.getItem('stoadApiBaseUrl') || DEFAULT_API_BASE_URL;
 
         function formatBytes(bytes) {
-            if (bytes === 0) return '0 B';
-            const k = 1024;
-            const sizes = ['B', 'KB', 'MB', 'GB'];
-            const i = Math.floor(Math.log(bytes) / Math.log(k));
-            return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+          if (!Number.isFinite(bytes) || bytes <= 0) {
+            return 'Unknown size';
+          }
+
+          const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+          let value = bytes;
+          let unitIndex = 0;
+
+          while (value >= 1024 && unitIndex < units.length - 1) {
+            value /= 1024;
+            unitIndex += 1;
+          }
+
+          const rounded = value >= 100 || unitIndex === 0 ? value.toFixed(0) : value.toFixed(1);
+          return `${rounded} ${units[unitIndex]}`;
+    }
+
+        function normalizeApiBaseUrl(value) {
+          return (value || '').trim().replace(/\/$/, '');
         }
 
-        function formatSpeed(bytesPerSecond) {
-            return formatBytes(bytesPerSecond) + '/s';
+        function setApiNote(message, isWarning) {
+          apiConfigNote.textContent = message;
+          apiConfigNote.style.color = isWarning ? 'var(--primary-hover)' : 'var(--text-muted)';
         }
 
-        function openInDefaultApp() {
-            const hash = extractMagnetFromHash();
-            
-            if (!hash) {
-                showStatus('No magnet link found. Please add a hash or magnet link after # in the URL.', 'error');
-                return;
-            }
+        function checkMixedContentRisk(baseUrl) {
+          if (window.location.protocol !== 'https:') {
+            return null;
+          }
 
-            const magnetLink = `magnet:?xt=urn:btih:${hash}`;
-            window.location.href = magnetLink;
-            showStatus('Opening in default torrent application...', 'info');
+          try {
+            const target = new URL(baseUrl);
+            if (target.protocol === 'http:' && target.hostname !== 'localhost' && target.hostname !== '127.0.0.1') {
+              return 'This page is running over HTTPS. Use an HTTPS API URL or the browser will block the requests.';
+            }
+          } catch (error) {
+            return 'Enter a full API URL including http:// or https://.';
+          }
+
+          return null;
         }
 
-        // Auto-start if there's a hash in URL
-        window.addEventListener('load', function() {
-            // Load saved server URL
-            const savedServerUrl = localStorage.getItem('peerflixServerUrl');
-            if (savedServerUrl) {
-                peerflixServerUrl = savedServerUrl;
-                document.getElementById('serverUrl').value = savedServerUrl;
+        function applyApiBaseUrl(value, options = {}) {
+          const normalized = normalizeApiBaseUrl(value);
+          if (!normalized) {
+            throw new Error('API server URL is required.');
+          }
+
+          const warning = checkMixedContentRisk(normalized);
+          apiBaseUrl = normalized;
+          apiBaseInput.value = normalized;
+          localStorage.setItem('stoadApiBaseUrl', normalized);
+          setApiNote(warning || 'API server saved. This URL will be reused on the next visit.', Boolean(warning));
+
+          if (!options.silent && warning) {
+            alert(warning);
+          }
+        }
+
+        function getTorrentStreamUrl(torrent) {
+          return torrent.stream_url || `${apiBaseUrl}/api/v1/torrents/${torrent.id}/stream.m3u8`;
+        }
+
+        function getFileStreamUrl(torrentId, file) {
+          return file.stream_url || `${apiBaseUrl}/api/stream/${torrentId}?file_index=${file.index}`;
+        }
+
+        function getDownloadUrl(torrentId, fileIndex) {
+          return `${apiBaseUrl}/api/stream/${torrentId}/download/${fileIndex}`;
+        }
+
+        function inferFileType(file) {
+          if (file.is_video) {
+            return 'video';
+      }
+
+          const fileName = (file.name || '').toLowerCase();
+          if (/\.(mp3|flac|wav|ogg|m4a|aac)$/i.test(fileName)) {
+            return 'audio';
+          }
+          if (/\.(png|jpe?g|gif|webp|avif|svg)$/i.test(fileName)) {
+            return 'image';
+          }
+          if (/\.(mp4|mkv|webm|mov|m3u8)$/i.test(fileName)) {
+            return 'video';
+          }
+          return 'file';
+        }
+
+        function fileIcon(fileType) {
+          if (fileType === 'video') {
+            return '🎬';
+          }
+          if (fileType === 'audio') {
+            return '🎵';
+          }
+          if (fileType === 'image') {
+            return '🖼️';
+          }
+          return '📄';
+        }
+
+        function destroyPlayer() {
+          if (activeHls) {
+            activeHls.destroy();
+            activeHls = null;
+          }
+        }
+
+        function setLoadingState(isLoading, label) {
+          fetchBtn.disabled = isLoading;
+          fetchBtn.textContent = isLoading ? label : 'Parse Magnet';
+        }
+
+        function updateResultHeader(torrent) {
+          const fileCount = Array.isArray(torrent.files) ? torrent.files.length : 0;
+          const totalBytes = (torrent.files || []).reduce((sum, file) => sum + (file.length || file.size || 0), 0);
+          const progress = typeof torrent.progress === 'number' ? `${torrent.progress.toFixed(1)}%` : '0.0%';
+          const status = torrent.status || 'downloading';
+
+          document.getElementById('result-name').textContent = torrent.name || torrent.info_hash || torrent.id;
+          document.getElementById('result-stats').textContent = `${fileCount} files · ${formatBytes(totalBytes)} · ${status} · ${progress}`;
+        }
+
+        function renderFiles(torrent) {
+          fileTree.innerHTML = '';
+
+          (torrent.files || []).forEach(file => {
+            const fileType = inferFileType(file);
+            const li = document.createElement('li');
+            li.className = 'file-node';
+            li.innerHTML = `
+              <div class="file-info">
+                <span>${fileIcon(fileType)}</span>
+                <span class="file-name" title="${file.name}">${file.name}</span>
+                <span class="file-size">${formatBytes(file.length || file.size || 0)}</span>
+              </div>
+              <div class="file-actions">
+                <button class="btn-sm" data-action="stream" data-file-index="${file.index}">Open</button>
+                <button class="btn-sm" data-action="download" data-file-index="${file.index}">Download</button>
+              </div>
+            `;
+            fileTree.appendChild(li);
+          });
+        }
+
+        function showTorrent(torrent) {
+          currentTorrentId = torrent.id || torrent.info_hash || torrent.infoHash;
+          resultBox.style.display = 'block';
+          updateResultHeader(torrent);
+          renderFiles(torrent);
+          resultBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        async function apiRequest(path, options = {}) {
+          const response = await fetch(`${apiBaseUrl}${path}`, {
+            ...options,
+            headers: {
+              'Content-Type': 'application/json',
+              ...(options.headers || {})
             }
-            
-            const hash = window.location.hash.substring(1);
-            if (hash) {
-                showStatus('Magnet link detected! Choose an option above to proceed.', 'info');
-                // Auto-show server config if not connected
-                if (!savedServerUrl) {
-                    document.getElementById('serverConfig').style.display = 'block';
-                }
-            } else {
-                showStatus('Add a magnet link or hash after # in the URL to get started.', 'info');
+          });
+
+          if (!response.ok) {
+            let detail = `Request failed with status ${response.status}`;
+            try {
+              const data = await response.json();
+              detail = data.detail || detail;
+            } catch (error) {
+              // Ignore JSON parsing failures and fall back to generic status text.
             }
+            throw new Error(detail);
+          }
+
+          return response.json();
+        }
+
+        async function pollTorrent(torrentId) {
+          try {
+            const torrent = await apiRequest(`/api/v1/torrents/${torrentId}`);
+            showTorrent(torrent);
+
+            if (torrent.status === 'error' || torrent.status === 'removed') {
+              clearInterval(pollTimer);
+              pollTimer = null;
+            }
+          } catch (error) {
+            clearInterval(pollTimer);
+            pollTimer = null;
+            document.getElementById('result-stats').textContent = error.message;
+          }
+        }
+
+        async function addTorrent(magnet) {
+          setLoadingState(true, 'Parsing Swarm...');
+
+          try {
+            applyApiBaseUrl(apiBaseInput.value || apiBaseUrl, { silent: true });
+            const torrent = await apiRequest('/api/v1/torrents', {
+              method: 'POST',
+              body: JSON.stringify({ magnet })
+            });
+
+            showTorrent(torrent);
+
+            if (pollTimer) {
+              clearInterval(pollTimer);
+            }
+            pollTimer = setInterval(() => pollTorrent(currentTorrentId), 2500);
+          } catch (error) {
+            alert(`Unable to add torrent: ${error.message}`);
+          } finally {
+            setLoadingState(false);
+          }
+        }
+
+        saveApiBtn.addEventListener('click', () => {
+          try {
+            applyApiBaseUrl(apiBaseInput.value);
+          } catch (error) {
+            alert(error.message);
+          }
         });
 
-        // Handle hash changes
-        window.addEventListener('hashchange', function() {
-            location.reload();
+        apiBaseInput.addEventListener('keydown', event => {
+          if (event.key === 'Enter') {
+            event.preventDefault();
+            saveApiBtn.click();
+          }
         });
-    </script>
+
+        function attachHls(video, sourceUrl) {
+          destroyPlayer();
+
+          if (window.Hls && window.Hls.isSupported()) {
+            activeHls = new window.Hls();
+            activeHls.loadSource(sourceUrl);
+            activeHls.attachMedia(video);
+            return;
+          }
+
+          video.src = sourceUrl;
+        }
+
+        function streamFile(name, type, url) {
+      previewBox.style.display = 'block';
+      mediaViewport.innerHTML = '';
+
+      if (type === 'video') {
+            mediaViewport.innerHTML = '<video controls autoplay playsinline></video>';
+            const video = mediaViewport.querySelector('video');
+            attachHls(video, url);
+      } else if (type === 'audio') {
+        mediaViewport.innerHTML = `<audio src="${url}" controls autoplay style="width:100%; margin-top:1rem;"></audio>`;
+      } else if (type === 'image') {
+        mediaViewport.innerHTML = `<img src="${url}" alt="preview" />`;
+          } else {
+            mediaViewport.innerHTML = `<div style="color:#F8F8F8; line-height:1.7;">No inline preview available for <strong>${name}</strong>.<br><a href="${url}" target="_blank" rel="noopener noreferrer" style="color:#F85818;">Open file in new tab</a></div>`;
+      }
+        }
+
+        fetchBtn.addEventListener('click', async () => {
+          const magnet = magnetInput.value.trim();
+          if (!magnet) {
+            alert('Please enter a valid magnet URL.');
+            return;
+          }
+
+          await addTorrent(magnet);
+        });
+
+        magnetInput.addEventListener('keydown', async event => {
+          if (event.key === 'Enter') {
+            event.preventDefault();
+            fetchBtn.click();
+          }
+        });
+
+        document.getElementById('sample-video').addEventListener('click', async () => {
+          magnetInput.value = 'magnet:?xt=urn:btih:08ada5a7a6183aae1e09d831df6748d566095a10&dn=Sintel';
+          await addTorrent(magnetInput.value);
+        });
+
+        document.getElementById('sample-audio').addEventListener('click', async () => {
+          magnetInput.value = 'magnet:?xt=urn:btih:2c26b46b68ffc68ff99b453c1d30413413422d70&dn=CosmicSynth';
+          await addTorrent(magnetInput.value);
+        });
+
+        fileTree.addEventListener('click', async event => {
+          const button = event.target.closest('button[data-action]');
+          if (!button || !currentTorrentId) {
+            return;
+          }
+
+          const fileIndex = button.dataset.fileIndex;
+          const torrent = await apiRequest(`/api/v1/torrents/${currentTorrentId}`);
+          const file = (torrent.files || []).find(entry => String(entry.index) === fileIndex);
+          if (!file) {
+            alert('File metadata is no longer available for this torrent.');
+            return;
+          }
+
+          if (button.dataset.action === 'download') {
+            window.open(getDownloadUrl(currentTorrentId, file.index), '_blank', 'noopener');
+            return;
+          }
+
+          const fileType = inferFileType(file);
+          const streamUrl = fileType === 'video'
+            ? getTorrentStreamUrl(torrent)
+            : getFileStreamUrl(currentTorrentId, file);
+
+          streamFile(file.name, fileType, streamUrl);
+        });
+
+    closePreview.addEventListener('click', () => {
+          destroyPlayer();
+      previewBox.style.display = 'none';
+      mediaViewport.innerHTML = '';
+    });
+
+        try {
+          applyApiBaseUrl(apiBaseUrl, { silent: true });
+        } catch (error) {
+          apiBaseInput.value = DEFAULT_API_BASE_URL;
+          setApiNote(error.message, true);
+        }
+  </script>
 </body>
 </html>
