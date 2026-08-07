@@ -976,6 +976,50 @@
           }
         }
 
+        function normalizeMagnetInput(value) {
+          const trimmed = (value || '').trim();
+          if (!trimmed) {
+            return '';
+          }
+
+          if (trimmed.startsWith('magnet:')) {
+            return trimmed;
+          }
+
+          if (/^[a-fA-F0-9]{40}$/.test(trimmed)) {
+            return `magnet:?xt=urn:btih:${trimmed.toLowerCase()}`;
+          }
+
+          return trimmed;
+        }
+
+        function getMagnetFromLocation() {
+          const params = new URLSearchParams(window.location.search);
+          const directValue = params.get('magnet') || params.get('magnet_link') || params.get('link') || params.get('url');
+          if (directValue) {
+            return normalizeMagnetInput(directValue);
+          }
+
+          const hashValue = params.get('hash') || params.get('infohash') || params.get('info_hash');
+          if (hashValue) {
+            return normalizeMagnetInput(hashValue);
+          }
+
+          const fragment = window.location.hash.replace(/^#/, '').trim();
+          if (fragment) {
+            return normalizeMagnetInput(decodeURIComponent(fragment));
+          }
+
+          return '';
+        }
+
+        function syncMagnetInputFromLocation() {
+          const locationMagnet = getMagnetFromLocation();
+          if (locationMagnet) {
+            magnetInput.value = locationMagnet;
+          }
+        }
+
         function getTorrentStreamUrl(torrent) {
           return torrent.stream_url || `${apiBaseUrl}/api/v1/torrents/${torrent.id}/stream.m3u8`;
         }
@@ -1244,6 +1288,12 @@
           apiBaseInput.value = DEFAULT_API_BASE_URL;
           setApiNote(error.message, true);
         }
+
+        syncMagnetInputFromLocation();
+
+        window.addEventListener('hashchange', () => {
+          syncMagnetInputFromLocation();
+        });
   </script>
 </body>
 </html>
