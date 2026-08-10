@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Stoad — Instant Torrent Streaming & Inspection</title>
+  <title>Stoad — Watch Torrents Instantly in Your Browser</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -705,12 +705,6 @@
         </span>
         <span class="wordmark">stoad <span class="by">by server96</span></span>
       </a>
-      <!-- <nav>
-        <a href="https://github.com">GitHub</a>
-        <a class="pkg" href="#">npm</a>
-        <a class="pkg" href="#">crates.io</a>
-        <a class="pkg" href="#">PyPI</a>
-      </nav> -->
     </header>
 
     <!-- Top Advert Placeholder -->
@@ -742,50 +736,27 @@
 
       <!-- Hero Section -->
       <section class="band">
-        <h1>Any magnet in.<br><span class="heat">Media stream out.</span></h1>
+        <h1>Drop a link.<br><span class="heat">Start watching in seconds.</span></h1>
         <p class="lede">
-          In-browser WebTorrent client that inspects magnet links, builds direct file trees, and streams audio, video, and documents instantly. <strong>Files stream peer-to-peer directly in your browser window</strong>.
+          Stoad turns a torrent link into a playable video, song, or file — right in your browser, no downloads or extra apps needed. <strong>Just paste, and it starts streaming.</strong>
         </p>
-
-        <ul class="badges">
-          <li>
-            <a href="#">
-              <span class="key">crates.io</span><span class="value">stoad-rs</span>
-            </a>
-          </li>
-          <li>
-            <a href="#">
-              <span class="key">npm</span><span class="value">@stoad/core</span>
-            </a>
-          </li>
-          <li>
-            <a href="#">
-              <span class="key">PyPI</span><span class="value">stoad-python</span>
-            </a>
-          </li>
-          <li>
-            <a href="#">
-              <span class="key">license</span><span class="value">MIT</span>
-            </a>
-          </li>
-        </ul>
       </section>
 
       <!-- Input Drop Area -->
       <section class="band">
         <div class="drop-zone">
-          <span style="font-family: var(--font-mono); font-weight: 600; display: block; font-size: 1.05rem;">Paste a torrent magnet link</span>
-          <span style="color: var(--text-muted); font-size: 0.85rem; display: block; margin-top: 0.2rem;">Point the UI at your streaming API, then submit a magnet link for live torrent inspection.</span>
+          <span style="font-family: var(--font-mono); font-weight: 600; display: block; font-size: 1.05rem;">Step 1: Paste your link</span>
+          <span style="color: var(--text-muted); font-size: 0.85rem; display: block; margin-top: 0.2rem;">First, tell Stoad which server to talk to. Then paste your magnet link below and hit "Parse Magnet" to see what's inside.</span>
 
           <div class="drop-input-stack">
             <div class="config-line">
-              <label for="api-base-input">API Server</label>
-              <input type="text" id="api-base-input" placeholder="https://play.server96.com" />
-              <button class="btn-sm" id="save-api-btn" type="button">Save</button>
+              <label for="api-base-input">Server address</label>
+              <input type="text" id="api-base-input" placeholder="https://play.server96.com" value="https://play.server96.com" />
+              <button class="btn-sm" id="save-api-btn" type="button">Edit</button>
             </div>
 
             <div class="config-meta" id="api-config-note">
-              Use your HTTPS backend URL for GitHub Pages deployments. Example: https://play.server96.com
+              This is the address Stoad sends your requests to. Example: https://play.server96.com — it must start with https:// to work properly.
             </div>
 
             <div class="drop-input-group">
@@ -794,12 +765,6 @@
             </div>
           </div>
         </div>
-
-        <p class="samples">
-          No magnet link at hand? Try a sample swarm:
-          <button id="sample-video">sintel_1080p.mkv</button>
-          <button id="sample-audio">cosmic_synth.flac</button>
-        </p>
       </section>
 
       <!-- In-Feed Ad Placeholder -->
@@ -824,7 +789,7 @@
 
         <div class="preview-box" id="preview-box">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-            <span id="preview-title" style="color: var(--primary); font-weight: 600;">&gt;_ Stream Preview</span>
+            <span id="preview-title" style="color: var(--primary); font-weight: 600;">&gt;_ Now Playing</span>
             <button class="btn-sm" id="close-preview" style="background:#000; color:#fff;">Close [X]</button>
           </div>
           <div id="media-viewport"></div>
@@ -833,37 +798,22 @@
 
       <!-- Technical Architecture Info -->
       <section class="band">
-        <h2 style="font-size: 1.35rem; margin-bottom: 1rem;">Architecture</h2>
+        <h2 style="font-size: 1.35rem; margin-bottom: 1rem;">How it works</h2>
         <dl class="facts">
-          <dt>Swarm Engine</dt>
+          <dt>Downloading</dt>
           <dd>
-            <strong>Direct WebRTC peer connections</strong> eliminate central proxy bottlenecks. Files are requested block-by-block and stored in IndexedDB temporary buffers.
+            <strong>The server fetches your files using libtorrent</strong>, pulling pieces from the swarm in the order needed for playback.
           </dd>
 
-          <dt>Media Inspection</dt>
+          <dt>Processing</dt>
           <dd>
-            Header frames are read selectively first. Streamable containers (.mp4, .mkv, .mp3) play immediately while remaining blocks load in the background.
+            As pieces arrive, <strong>ffmpeg remuxes them</strong> into a streaming-friendly format — no format conversion wait, just repackaging for instant playback.
           </dd>
 
-          <dt>Local Privacy</dt>
+          <dt>Playback</dt>
           <dd>
-            Zero server uploads. Magnet metadata and file structures are calculated locally using WebAssembly rust-bencode modules.
+            The result is served to your browser as an <strong>HLS stream</strong>, so video and audio start playing right away and keep buffering smoothly as more arrives.
           </dd>
-        </dl>
-      </section>
-
-      <!-- Terminal / Install Band -->
-      <section class="band">
-        <h2 style="font-size: 1.35rem; margin-bottom: 1rem;">CLI Installation</h2>
-        <dl class="installs">
-          <dt>Rust</dt>
-          <dd><span class="dollar">$</span><code class="cmd">cargo install stoad-cli</code></dd>
-          
-          <dt>Node.js</dt>
-          <dd><span class="dollar">$</span><code class="cmd">npm install -g @stoad/cli</code></dd>
-
-          <dt>CLI Stream</dt>
-          <dd><span class="dollar">$</span><code class="cmd">stoad "magnet:?xt=urn:btih:..." --vlc</code></dd>
         </dl>
       </section>
 
@@ -898,7 +848,7 @@
 
   <!-- Interactive JavaScript Logic -->
   <script>
-        const DEFAULT_API_BASE_URL = window.STOAD_API_BASE || 'https://localhost:6991';
+        const DEFAULT_API_BASE_URL = window.STOAD_API_BASE || 'https://play.server96.com';
     const fetchBtn = document.getElementById('fetch-btn');
     const magnetInput = document.getElementById('magnet-input');
     const resultBox = document.getElementById('result-box');
@@ -970,7 +920,7 @@
           apiBaseUrl = normalized;
           apiBaseInput.value = normalized;
           localStorage.setItem('stoadApiBaseUrl', normalized);
-          setApiNote(warning || 'API server saved. This URL will be reused on the next visit.', Boolean(warning));
+          setApiNote(warning || 'Saved — Stoad will remember this server next time you visit.', Boolean(warning));
 
           if (!options.silent && warning) {
             alert(warning);
@@ -1079,6 +1029,11 @@
           return getFileStreamUrl(torrentId, file);
         }
 
+        function isMobileDevice() {
+          const ua = navigator.userAgent || navigator.vendor || window.opera || '';
+          return /android/i.test(ua) || (/iPad|iPhone|iPod/.test(ua) && !window.MSStream);
+        }
+
         function fileIcon(fileType) {
           if (fileType === 'video') {
             return '🎬';
@@ -1130,8 +1085,7 @@
                 ${isDefault ? '<span class="file-size">default</span>' : ''}
               </div>
               <div class="file-actions">
-                <button class="btn-sm" data-action="stream" data-file-index="${file.index}">Open</button>
-                <button class="btn-sm" data-action="playlist" data-file-index="${file.index}">Playlist</button>
+                <button class="btn-sm" data-action="stream" data-file-index="${file.index}">Stream</button>
                 <button class="btn-sm" data-action="download" data-file-index="${file.index}">Download</button>
               </div>
             `;
@@ -1188,7 +1142,7 @@
         }
 
         async function addTorrent(magnet) {
-          setLoadingState(true, 'Parsing Swarm...');
+          setLoadingState(true, 'Loading...');
 
           try {
             applyApiBaseUrl(apiBaseInput.value || apiBaseUrl, { silent: true });
@@ -1204,7 +1158,7 @@
             }
             pollTimer = setInterval(() => pollTorrent(currentTorrentId), 2500);
           } catch (error) {
-            alert(`Unable to add torrent: ${error.message}`);
+            alert(`Couldn't load that link: ${error.message}`);
           } finally {
             setLoadingState(false);
           }
@@ -1267,7 +1221,7 @@
         fetchBtn.addEventListener('click', async () => {
           const magnet = magnetInput.value.trim();
           if (!magnet) {
-            alert('Please enter a valid magnet URL.');
+            alert('Please paste a magnet link first.');
             return;
           }
 
@@ -1279,16 +1233,6 @@
             event.preventDefault();
             fetchBtn.click();
           }
-        });
-
-        document.getElementById('sample-video').addEventListener('click', async () => {
-          magnetInput.value = 'magnet:?xt=urn:btih:08ada5a7a6183aae1e09d831df6748d566095a10&dn=Sintel';
-          await addTorrent(magnetInput.value);
-        });
-
-        document.getElementById('sample-audio').addEventListener('click', async () => {
-          magnetInput.value = 'magnet:?xt=urn:btih:2c26b46b68ffc68ff99b453c1d30413413422d70&dn=CosmicSynth';
-          await addTorrent(magnetInput.value);
         });
 
         fileTree.addEventListener('click', async event => {
@@ -1310,14 +1254,16 @@
             return;
           }
 
-          if (button.dataset.action === 'playlist') {
-            window.open(getFilePlaylistUrl(currentTorrentId, file), '_blank', 'noopener');
-            return;
-          }
-
           const fileType = inferFileType(file);
           const streamUrl = getPreviewUrl(currentTorrentId, torrent, file, fileType);
           const fallbackUrl = getFileStreamUrl(currentTorrentId, file);
+
+          if (isMobileDevice() && (fileType === 'video' || fileType === 'audio')) {
+            // On Android/iOS, hand off the HLS stream URL to the OS so it can
+            // offer any installed apps that support HLS playback.
+            window.open(streamUrl, '_blank', 'noopener');
+            return;
+          }
 
           streamFile(file.name, fileType, streamUrl, fallbackUrl);
         });
