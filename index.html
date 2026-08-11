@@ -12,15 +12,15 @@
     /* 
       Theme Colors:
       #F8F8F8 - Base background
-      #F85818 - Primary accent (Heat Orange)
+      #f48207 - Primary accent (Heat Orange)
       #383734 - Main text & architectural lines
       #EAF3F2 - Light teal background fill
       #FDDED9 - Soft orange/coral fill
     */
     :root {
       --bg-main: #F8F8F8;
-      --primary: #F85818;
-      --primary-hover: #d8450a;
+      --primary: #f48207;
+      --primary-hover: #d4710a;
       --text-dark: #383734;
       --text-muted: #6b6a67;
       --teal-bg: #EAF3F2;
@@ -683,17 +683,17 @@
                   transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), stroke 0.2s ease;
                 }
 
-                .chev-back { stroke: #F85818; }
+                .chev-back { stroke: #f48207; }
                 .chev-front { stroke: #383734; }
 
                 .stoad-play-btn:hover .chev-back {
                   transform: translateX(-2px);
-                  stroke: #d8450a;
+                  stroke: #d4710a;
                 }
 
                 .stoad-play-btn:hover .chev-front {
                   transform: translateX(4px);
-                  stroke: #F85818;
+                  stroke: #f48207;
                 }
               </style>
             </defs>
@@ -703,7 +703,7 @@
             </g>
           </svg>
         </span>
-        <span class="wordmark">stoad <span class="by">by server96</span></span>
+        <span class="wordmark">stoad</span>
       </a>
     </header>
 
@@ -790,7 +790,10 @@
         <div class="preview-box" id="preview-box">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
             <span id="preview-title" style="color: var(--primary); font-weight: 600;">&gt;_ Now Playing</span>
-            <button class="btn-sm" id="close-preview" style="background:#000; color:#fff;">Close [X]</button>
+            <div style="display: flex; gap: 0.4rem;">
+              <button class="btn-sm" id="share-preview" style="background:#000; color:#fff;">Share</button>
+              <button class="btn-sm" id="close-preview" style="background:#000; color:#fff;">Close [X]</button>
+            </div>
           </div>
           <div id="media-viewport"></div>
         </div>
@@ -840,6 +843,7 @@
       <a href="#">Source Code</a>
       <a href="#">Bug Tracker</a>
       <a href="#">Built with Rust & WebAssembly</a>
+      <span class="by" style="margin-left: auto;">by server96</span>
     </footer>
 
   </div>
@@ -856,6 +860,7 @@
     const previewBox = document.getElementById('preview-box');
     const mediaViewport = document.getElementById('media-viewport');
     const closePreview = document.getElementById('close-preview');
+    const sharePreview = document.getElementById('share-preview');
       const apiBaseInput = document.getElementById('api-base-input');
       const saveApiBtn = document.getElementById('save-api-btn');
       const apiConfigNote = document.getElementById('api-config-note');
@@ -1029,11 +1034,6 @@
           return getFileStreamUrl(torrentId, file);
         }
 
-        function isMobileDevice() {
-          const ua = navigator.userAgent || navigator.vendor || window.opera || '';
-          return /android/i.test(ua) || (/iPad|iPhone|iPod/.test(ua) && !window.MSStream);
-        }
-
         function fileIcon(fileType) {
           if (fileType === 'video') {
             return '🎬';
@@ -1201,9 +1201,12 @@
           video.src = fallbackUrl || sourceUrl;
         }
 
+        let currentStream = null;
+
         function streamFile(name, type, url, fallbackUrl) {
           previewBox.style.display = 'block';
           mediaViewport.innerHTML = '';
+          currentStream = { name, type, url, fallbackUrl };
 
           if (type === 'video') {
             mediaViewport.innerHTML = '<video controls autoplay playsinline></video>';
@@ -1214,7 +1217,7 @@
           } else if (type === 'image') {
             mediaViewport.innerHTML = `<img src="${url}" alt="preview" />`;
           } else {
-            mediaViewport.innerHTML = `<div style="color:#F8F8F8; line-height:1.7;">No inline preview available for <strong>${name}</strong>.<br><a href="${url}" target="_blank" rel="noopener noreferrer" style="color:#F85818;">Open file in new tab</a></div>`;
+            mediaViewport.innerHTML = `<div style="color:#F8F8F8; line-height:1.7;">No inline preview available for <strong>${name}</strong>.<br><a href="${url}" target="_blank" rel="noopener noreferrer" style="color:#f48207;">Open file in new tab</a></div>`;
           }
         }
 
@@ -1258,13 +1261,6 @@
           const streamUrl = getPreviewUrl(currentTorrentId, torrent, file, fileType);
           const fallbackUrl = getFileStreamUrl(currentTorrentId, file);
 
-          if (isMobileDevice() && (fileType === 'video' || fileType === 'audio')) {
-            // On Android/iOS, hand off the HLS stream URL to the OS so it can
-            // offer any installed apps that support HLS playback.
-            window.open(streamUrl, '_blank', 'noopener');
-            return;
-          }
-
           streamFile(file.name, fileType, streamUrl, fallbackUrl);
         });
 
@@ -1272,6 +1268,31 @@
           destroyPlayer();
       previewBox.style.display = 'none';
       mediaViewport.innerHTML = '';
+      currentStream = null;
+    });
+
+    sharePreview.addEventListener('click', async () => {
+      if (!currentStream) {
+        return;
+      }
+
+      const shareUrl = currentStream.fallbackUrl || currentStream.url;
+
+      if (navigator.share) {
+        try {
+          await navigator.share({ title: currentStream.name, url: shareUrl });
+        } catch (error) {
+          // User cancelled the share sheet or it failed silently — nothing to do.
+        }
+        return;
+      }
+
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        alert('Stream link copied to clipboard.');
+      } catch (error) {
+        prompt('Copy this stream link:', shareUrl);
+      }
     });
 
         try {
